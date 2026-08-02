@@ -13,18 +13,20 @@ LABEL \
 RUN apk add --no-cache \
     curl \
     python3 \
-    py3-websocket-client \
-    unzip
+    py3-websocket-client
 
 COPY run.sh /run.sh
 COPY register_resource.py /register_resource.py
+COPY component_manager.py /component_manager.py
 COPY create_report.py /create_report.py
 COPY checksum_utils.py /checksum_utils.py
 COPY local_inventory.py /local_inventory.py
+COPY components.json /components.json
 
 RUN chmod a+x \
     /run.sh \
     /register_resource.py \
+    /component_manager.py \
     /create_report.py \
     /checksum_utils.py \
     /local_inventory.py
