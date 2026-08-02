@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.11
+
+- Agregadas opciones para activar o desactivar componentes.
+- Cada instalación puede elegir las tarjetas e integraciones administradas.
+- Desactivar un componente no elimina sus archivos existentes.
+- Agregados mensajes de registro para componentes desactivados.
+
 ## 0.1.10
 
 - Corregida la instalación de Spook.
