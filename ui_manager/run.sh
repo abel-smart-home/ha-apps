@@ -114,6 +114,17 @@ install_frontend_component \
     "/local/ui-components/mushroom/mushroom.js"
 
 
+# Modern Circular Gauge
+
+install_frontend_component \
+    "Modern Circular Gauge" \
+    "0.14.1" \
+    "/config/www/ui-components/modern-circular-gauge" \
+    "modern-circular-gauge.js" \
+    "https://github.com/selvalt7/modern-circular-gauge/releases/download/v0.14.1/modern-circular-gauge.js" \
+    "/local/ui-components/modern-circular-gauge/modern-circular-gauge.js"
+
+
 while true; do
     sleep 3600
 done
