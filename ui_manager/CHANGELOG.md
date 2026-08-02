@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.1
+
+- Agregada una prueba controlada de fallo de descarga.
+- La prueba utiliza una carpeta aislada y no modifica componentes reales.
+- Cambiado el arranque a manual_only.
+- La app no puede configurarse para iniciar automáticamente.
+- Confirmado que los errores individuales no detienen el mantenimiento.
+
 ## 0.2.0
 
 - Agregado manejo independiente de errores por componente.
