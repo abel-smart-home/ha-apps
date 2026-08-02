@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.13
+
+- Corregido el reinicio continuo después del mantenimiento.
+- Permitido desactivar manualmente el inicio al arrancar.
+- La aplicación continúa ejecutándose una sola vez y se detiene al finalizar.
+
 ## 0.1.12
 
 - La aplicación ahora funciona únicamente bajo ejecución manual.
