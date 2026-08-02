@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0
+
+- Agregado manejo independiente de errores por componente.
+- Un fallo ya no detiene el mantenimiento de los demás componentes.
+- Agregado reporte de versiones anterior, objetivo y final.
+- Agregados estados VERIFICADO, INSTALADO, ACTUALIZADO, OMITIDO y ERROR.
+- Agregada validación de la versión interna de integraciones.
+- Las descargas o paquetes inválidos conservan la versión anterior.
+- El reporte se genera incluso cuando existen errores.
+
 ## 0.1.15
 
 - Limitado el historial a los 20 reportes más recientes.
