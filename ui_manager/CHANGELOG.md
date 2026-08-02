@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.0
+
+- Agregado components.json como catálogo único de componentes.
+- Versiones, URL, rutas de instalación y huellas SHA-256 se administran en un solo archivo.
+- Agregado component_manager.py para procesar dinámicamente el catálogo.
+- Eliminadas del run.sh las definiciones repetidas de componentes.
+- El reporte de mantenimiento ahora obtiene nombres, opciones, rutas y huellas desde el catálogo.
+- Agregada validación del esquema, campos obligatorios, URL HTTPS y huellas SHA-256.
+- El mantenimiento se cancela si components.json es inválido.
+- Se conserva el modo de inventario local de solo lectura.
+- Se conserva el manejo independiente de errores y la reparación por integridad.
+
 ## 0.2.4
 
 - Agregado modo de inventario local SHA-256 en solo lectura.
