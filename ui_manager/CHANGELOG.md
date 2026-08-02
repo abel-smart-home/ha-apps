@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.15
+
+- Limitado el historial a los 20 reportes más recientes.
+- latest.txt no se incluye dentro del límite.
+- Los reportes históricos más antiguos se eliminan automáticamente.
+- Agregado al registro el número de reportes eliminados.
+
 ## 0.1.14
 
 - Agregados reportes de mantenimiento.
