@@ -1,0 +1,20 @@
+# Changelog
+
+## 0.1.5
+
+- Corregido el metadato de versión de la aplicación.
+- Agregado el historial de cambios.
+
+## 0.1.4
+
+- Agregado Mushroom 5.2.2.
+- Instalación y registro automático de Mushroom.
+
+## 0.1.3
+
+- Agregado el registro automático de recursos de los dashboards.
+
+## 0.1.2
+
+- Agregado Mini Graph Card 0.13.0.
+- Instalación automática dentro de la carpeta de configuración.
