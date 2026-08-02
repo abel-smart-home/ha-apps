@@ -19,9 +19,12 @@ RUN apk add --no-cache \
 COPY run.sh /run.sh
 COPY register_resource.py /register_resource.py
 COPY create_report.py /create_report.py
+COPY checksum_utils.py /checksum_utils.py
 
 RUN chmod a+x \
     /run.sh \
-    /register_resource.py
+    /register_resource.py \
+    /create_report.py \
+    /checksum_utils.py
 
 CMD ["/run.sh"]
