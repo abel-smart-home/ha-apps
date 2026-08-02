@@ -403,7 +403,13 @@ fi
 bashio::log.info \
     "Comprobación de componentes finalizada"
 
+if [[ "${INTEGRATION_CHANGED}" == "true" ]]; then
+    bashio::log.warning \
+        "Reinicia Home Assistant Core para aplicar los cambios"
+else
+    bashio::log.info \
+        "No es necesario reiniciar Home Assistant Core"
+fi
 
-while true; do
-    sleep 3600
-done
+bashio::log.info \
+    "Mantenimiento finalizado. La aplicación se detendrá."
