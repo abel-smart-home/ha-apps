@@ -18,6 +18,7 @@ RUN apk add --no-cache \
 
 COPY run.sh /run.sh
 COPY register_resource.py /register_resource.py
+COPY create_report.py /create_report.py
 
 RUN chmod a+x \
     /run.sh \
