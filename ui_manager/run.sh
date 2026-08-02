@@ -932,6 +932,32 @@ else
         "5.0.0"
 fi
 
+# Prueba controlada de manejo de errores.
+#
+# Utiliza una carpeta aislada y una dirección deliberadamente inválida.
+# No modifica ningún componente real de Home Assistant.
+
+if option_enabled "controlled_failure_test"; then
+    bashio::log.warning \
+        "Ejecutando prueba controlada de fallo"
+
+    install_frontend_component \
+        "controlled_failure_test" \
+        "Prueba controlada de descarga" \
+        "1.0.0-test" \
+        "/config/ui-manager/test/controlled-failure" \
+        "controlled-failure.js" \
+        "https://example.invalid/controlled-failure.js" \
+        "/local/ui-manager-test/controlled-failure.js" \
+        || true
+
+    bashio::log.info \
+        "La prueba controlada terminó; continuando con el mantenimiento"
+else
+    rm -rf \
+        "/config/ui-manager/test/controlled-failure"
+fi
+
 
 if [[ "${INTEGRATION_CHANGED}" == "true" ]]; then
     bashio::log.warning \
