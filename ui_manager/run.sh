@@ -5,6 +5,27 @@ set -euo pipefail
 INTEGRATION_CHANGED="false"
 
 
+option_enabled() {
+    local option_name="$1"
+    local option_value
+
+    option_value="$(bashio::config "${option_name}")"
+
+    [[ "${option_value}" == "true" ]]
+}
+
+
+log_component_disabled() {
+    local component_name="$1"
+
+    bashio::log.info \
+        "${component_name} está desactivado en la configuración"
+
+    bashio::log.info \
+        "No se instalará ni actualizará ${component_name}"
+}
+
+
 install_frontend_component() {
     local component_name="$1"
     local component_version="$2"
@@ -200,8 +221,8 @@ except Exception:
             -quit
     )"
 
-    # Algunos paquetes oficiales, como Spook, contienen directamente
-    # los archivos de la integración en la raíz del ZIP.
+    # Algunos paquetes oficiales, como Spook, incluyen directamente
+    # los archivos de la integración en la raíz del archivo ZIP.
     if [[ -z "${source_dir}" ]] \
         && [[ -f "${temporary_dir}/extracted/manifest.json" ]]; then
 
@@ -294,59 +315,80 @@ except Exception:
 
 
 bashio::log.info "Smart Home UI Manager iniciado correctamente"
+bashio::log.info "Leyendo configuración de componentes"
 
 
 # Mini Graph Card
 
-install_frontend_component \
-    "Mini Graph Card" \
-    "0.13.0" \
-    "/config/www/ui-components/mini-graph-card" \
-    "mini-graph-card-bundle.js" \
-    "https://github.com/kalkih/mini-graph-card/releases/download/v0.13.0/mini-graph-card-bundle.js" \
-    "/local/ui-components/mini-graph-card/mini-graph-card-bundle.js"
+if option_enabled "mini_graph_card"; then
+    install_frontend_component \
+        "Mini Graph Card" \
+        "0.13.0" \
+        "/config/www/ui-components/mini-graph-card" \
+        "mini-graph-card-bundle.js" \
+        "https://github.com/kalkih/mini-graph-card/releases/download/v0.13.0/mini-graph-card-bundle.js" \
+        "/local/ui-components/mini-graph-card/mini-graph-card-bundle.js"
+else
+    log_component_disabled "Mini Graph Card"
+fi
 
 
 # Mushroom
 
-install_frontend_component \
-    "Mushroom" \
-    "5.2.2" \
-    "/config/www/ui-components/mushroom" \
-    "mushroom.js" \
-    "https://github.com/piitaya/lovelace-mushroom/releases/download/v5.2.2/mushroom.js" \
-    "/local/ui-components/mushroom/mushroom.js"
+if option_enabled "mushroom"; then
+    install_frontend_component \
+        "Mushroom" \
+        "5.2.2" \
+        "/config/www/ui-components/mushroom" \
+        "mushroom.js" \
+        "https://github.com/piitaya/lovelace-mushroom/releases/download/v5.2.2/mushroom.js" \
+        "/local/ui-components/mushroom/mushroom.js"
+else
+    log_component_disabled "Mushroom"
+fi
 
 
 # Modern Circular Gauge
 
-install_frontend_component \
-    "Modern Circular Gauge" \
-    "0.14.1" \
-    "/config/www/ui-components/modern-circular-gauge" \
-    "modern-circular-gauge.js" \
-    "https://github.com/selvalt7/modern-circular-gauge/releases/download/v0.14.1/modern-circular-gauge.js" \
-    "/local/ui-components/modern-circular-gauge/modern-circular-gauge.js"
+if option_enabled "modern_circular_gauge"; then
+    install_frontend_component \
+        "Modern Circular Gauge" \
+        "0.14.1" \
+        "/config/www/ui-components/modern-circular-gauge" \
+        "modern-circular-gauge.js" \
+        "https://github.com/selvalt7/modern-circular-gauge/releases/download/v0.14.1/modern-circular-gauge.js" \
+        "/local/ui-components/modern-circular-gauge/modern-circular-gauge.js"
+else
+    log_component_disabled "Modern Circular Gauge"
+fi
 
 
 # SonoffLAN
 
-install_custom_integration \
-    "SonoffLAN" \
-    "sonoff" \
-    "3.12.2" \
-    "https://github.com/AlexxIT/SonoffLAN/archive/refs/tags/v3.12.2.zip" \
-    "sonoff"
+if option_enabled "sonofflan"; then
+    install_custom_integration \
+        "SonoffLAN" \
+        "sonoff" \
+        "3.12.2" \
+        "https://github.com/AlexxIT/SonoffLAN/archive/refs/tags/v3.12.2.zip" \
+        "sonoff"
+else
+    log_component_disabled "SonoffLAN"
+fi
 
 
 # Spook
 
-install_custom_integration \
-    "Spook" \
-    "spook" \
-    "5.0.0" \
-    "https://github.com/frenck/spook/releases/download/v5.0.0/spook.zip" \
-    "spook"
+if option_enabled "spook"; then
+    install_custom_integration \
+        "Spook" \
+        "spook" \
+        "5.0.0" \
+        "https://github.com/frenck/spook/releases/download/v5.0.0/spook.zip" \
+        "spook"
+else
+    log_component_disabled "Spook"
+fi
 
 
 if [[ "${INTEGRATION_CHANGED}" == "true" ]]; then
@@ -356,6 +398,10 @@ if [[ "${INTEGRATION_CHANGED}" == "true" ]]; then
     bashio::log.warning \
         "Es necesario reiniciar Home Assistant Core"
 fi
+
+
+bashio::log.info \
+    "Comprobación de componentes finalizada"
 
 
 while true; do
