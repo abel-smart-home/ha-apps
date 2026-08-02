@@ -329,6 +329,16 @@ install_custom_integration \
     "sonoff"
 
 
+# Spook
+
+install_custom_integration \
+    "Spook" \
+    "spook" \
+    "5.0.0" \
+    "https://github.com/frenck/spook/archive/refs/tags/v5.0.0.zip" \
+    "spook"
+
+
 if [[ "${INTEGRATION_CHANGED}" == "true" ]]; then
     bashio::log.warning \
         "Se instaló o actualizó una integración personalizada"
