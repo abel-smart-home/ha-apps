@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.12
+
+- La aplicación ahora funciona únicamente bajo ejecución manual.
+- Eliminado el inicio automático con Home Assistant.
+- La aplicación se detiene al finalizar el mantenimiento.
+- Agregado un mensaje indicando si es necesario reiniciar Home Assistant Core.
+
 ## 0.1.11
 
 - Agregadas opciones para activar o desactivar componentes.
