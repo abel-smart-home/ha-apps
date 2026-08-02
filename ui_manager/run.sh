@@ -186,6 +186,8 @@ except Exception:
         return 1
     fi
 
+    mkdir -p "${temporary_dir}/extracted"
+
     unzip -q \
         "${archive_file}" \
         -d "${temporary_dir}/extracted"
@@ -197,6 +199,14 @@ except Exception:
             -print \
             -quit
     )"
+
+    # Algunos paquetes oficiales, como Spook, contienen directamente
+    # los archivos de la integración en la raíz del ZIP.
+    if [[ -z "${source_dir}" ]] \
+        && [[ -f "${temporary_dir}/extracted/manifest.json" ]]; then
+
+        source_dir="${temporary_dir}/extracted"
+    fi
 
     if [[ -z "${source_dir}" ]] \
         || [[ ! -f "${source_dir}/manifest.json" ]]; then
@@ -335,7 +345,7 @@ install_custom_integration \
     "Spook" \
     "spook" \
     "5.0.0" \
-    "https://github.com/frenck/spook/archive/refs/tags/v5.0.0.zip" \
+    "https://github.com/frenck/spook/releases/download/v5.0.0/spook.zip" \
     "spook"
 
 
