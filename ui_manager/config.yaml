@@ -1,6 +1,6 @@
 name: Smart Home UI Manager
-description: Instala y administra componentes personalizados para Home Assistant
-version: "0.2.3"
+description: Instala, verifica e inventaría componentes personalizados para Home Assistant
+version: "0.2.4"
 slug: ui_manager
 init: false
 
@@ -21,6 +21,11 @@ map:
     path: /config
 
 options:
+  local_inventory_enabled: false
+  local_inventory_type: frontend
+  local_inventory_name: ""
+  local_inventory_version: ""
+  local_inventory_path: ""
   mini_graph_card: true
   mushroom: true
   modern_circular_gauge: true
@@ -28,6 +33,11 @@ options:
   spook: true
 
 schema:
+  local_inventory_enabled: bool
+  local_inventory_type: str
+  local_inventory_name: str
+  local_inventory_version: str
+  local_inventory_path: str
   mini_graph_card: bool
   mushroom: bool
   modern_circular_gauge: bool
