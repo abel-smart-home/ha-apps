@@ -12,11 +12,16 @@ import sys
 import tempfile
 import zipfile
 from dataclasses import dataclass
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from checksum_utils import calculate_file_sha256, calculate_tree_sha256
+from backup_manager import (
+    BackupError,
+    configured_backup_limit,
+    create_integration_backup,
+    prune_backups,
+)
 
 
 DEFAULT_CATALOG = Path("/components.json")
@@ -285,7 +290,7 @@ def download(url: str, destination: Path) -> bool:
         "--max-time",
         "300",
         "--user-agent",
-        "Smart-Home-UI-Manager/0.3.0",
+        "Smart-Home-UI-Manager/0.4.0",
         url,
         "--output",
         str(destination),
@@ -520,6 +525,18 @@ def install_integration(component: Component, results_file: Path) -> tuple[bool,
     staging_dir = destination.with_name(destination.name + ".ui_manager_new")
     previous_dir = destination.with_name(destination.name + ".ui_manager_previous")
 
+    deleted_backups, cleanup_errors = prune_backups(
+        backup_root,
+        configured_backup_limit(),
+    )
+    if deleted_backups:
+        log(
+            "INFO",
+            f"{component.name}: respaldos antiguos eliminados: {deleted_backups}",
+        )
+    for cleanup_error in cleanup_errors:
+        log("WARNING", f"{component.name}: {cleanup_error}")
+
     had_existing_destination = destination.is_dir()
     previous_version = read_manifest_version(destination / "manifest.json")
     if not previous_version:
@@ -614,9 +631,15 @@ def install_integration(component: Component, results_file: Path) -> tuple[bool,
 
             backup_path: Path | None = None
             if had_existing_destination:
-                timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-                backup_path = backup_root / timestamp
-                shutil.copytree(destination, backup_path, symlinks=True)
+                backup_path = create_integration_backup(
+                    destination,
+                    backup_root,
+                    component_id=component.component_id,
+                    component_name=component.name,
+                    integration_id=component.integration_id,
+                    reason="pre_update",
+                    max_backups=configured_backup_limit(),
+                )
                 log("INFO", f"Respaldo creado: {backup_path}")
                 destination.rename(previous_dir)
 
@@ -643,7 +666,7 @@ def install_integration(component: Component, results_file: Path) -> tuple[bool,
                     f"guardar el archivo de estado de {component.name}: {error}",
                 )
 
-    except (OSError, RuntimeError, zipfile.BadZipFile) as error:
+    except (OSError, RuntimeError, zipfile.BadZipFile, BackupError) as error:
         shutil.rmtree(staging_dir, ignore_errors=True)
         if previous_dir.is_dir() and not destination.exists():
             try:
