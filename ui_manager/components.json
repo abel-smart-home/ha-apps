@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "catalog_version": "2026.08.02-1",
+  "components": [
+    {
+      "id": "mini_graph_card",
+      "name": "Mini Graph Card",
+      "option": "mini_graph_card",
+      "type": "frontend",
+      "version": "0.13.0",
+      "url": "https://github.com/kalkih/mini-graph-card/releases/download/v0.13.0/mini-graph-card-bundle.js",
+      "sha256": "4d8b986f3cd693c0f7771d2f5574008bc39c45ecb450aec067906150be2dfabd",
+      "install_dir": "/config/www/ui-components/mini-graph-card",
+      "filename": "mini-graph-card-bundle.js",
+      "resource_url": "/local/ui-components/mini-graph-card/mini-graph-card-bundle.js",
+      "resource_type": "module"
+    },
+    {
+      "id": "mushroom",
+      "name": "Mushroom",
+      "option": "mushroom",
+      "type": "frontend",
+      "version": "5.2.2",
+      "url": "https://github.com/piitaya/lovelace-mushroom/releases/download/v5.2.2/mushroom.js",
+      "sha256": "64b170b1a5a6da0029cd30b54518fd9cc2b8cd713e34ba1d0a05739c08e32796",
+      "install_dir": "/config/www/ui-components/mushroom",
+      "filename": "mushroom.js",
+      "resource_url": "/local/ui-components/mushroom/mushroom.js",
+      "resource_type": "module"
+    },
+    {
+      "id": "modern_circular_gauge",
+      "name": "Modern Circular Gauge",
+      "option": "modern_circular_gauge",
+      "type": "frontend",
+      "version": "0.14.1",
+      "url": "https://github.com/selvalt7/modern-circular-gauge/releases/download/v0.14.1/modern-circular-gauge.js",
+      "sha256": "14c9165e1204d061ff5143283106b7daa5536c69c63e2047b876060c7ca8943e",
+      "install_dir": "/config/www/ui-components/modern-circular-gauge",
+      "filename": "modern-circular-gauge.js",
+      "resource_url": "/local/ui-components/modern-circular-gauge/modern-circular-gauge.js",
+      "resource_type": "module"
+    },
+    {
+      "id": "sonofflan",
+      "name": "SonoffLAN",
+      "option": "sonofflan",
+      "type": "integration",
+      "version": "3.12.2",
+      "url": "https://github.com/AlexxIT/SonoffLAN/archive/refs/tags/v3.12.2.zip",
+      "sha256": "e86bba20ef02043e3f6f7a6e256cd6fc777d8e6fc51b503b98187a5a02e7a1c9",
+      "integration_id": "sonoff",
+      "source_folder": "sonoff"
+    },
+    {
+      "id": "spook",
+      "name": "Spook",
+      "option": "spook",
+      "type": "integration",
+      "version": "5.0.0",
+      "url": "https://github.com/frenck/spook/releases/download/v5.0.0/spook.zip",
+      "sha256": "7da7fb098063940902afbacc1a206eb85a70e94339575e5eaf036b371c05b29a",
+      "integration_id": "spook",
+      "source_folder": "spook"
+    }
+  ]
+}
