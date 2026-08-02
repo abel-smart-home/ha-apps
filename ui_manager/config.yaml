@@ -1,0 +1,14 @@
+name: Smart Home UI Manager
+description: Instala y administra componentes personalizados para Home Assistant
+version: "0.1.0"
+slug: ui_manager
+init: false
+
+arch:
+  - aarch64
+  - amd64
+
+startup: application
+boot: auto
+
+stage: experimental
