@@ -11,6 +11,7 @@ from typing import Any
 
 OPTIONS_FILE = Path("/data/options.json")
 REPORT_DIR = Path("/config/ui-manager/reports")
+MAX_HISTORICAL_REPORTS = 20
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -75,6 +76,42 @@ def integration_status(
         version = "desconocida"
 
     return "VERIFICADO", version
+
+
+def prune_historical_reports() -> tuple[int, list[str]]:
+    """
+    Conserva solamente los reportes históricos más recientes.
+
+    latest.txt no coincide con el patrón maintenance-*.txt,
+    por lo que no se incluye en este límite.
+    """
+    historical_reports = sorted(
+        (
+            path
+            for path in REPORT_DIR.glob("maintenance-*.txt")
+            if path.is_file()
+        ),
+        key=lambda path: path.name,
+        reverse=True,
+    )
+
+    reports_to_delete = historical_reports[
+        MAX_HISTORICAL_REPORTS:
+    ]
+
+    deleted_count = 0
+    errors: list[str] = []
+
+    for report_path in reports_to_delete:
+        try:
+            report_path.unlink()
+            deleted_count += 1
+        except OSError as error:
+            errors.append(
+                f"No se pudo eliminar {report_path.name}: {error}"
+            )
+
+    return deleted_count, errors
 
 
 def main() -> int:
@@ -257,6 +294,10 @@ def main() -> int:
         )
         return 1
 
+    deleted_count, cleanup_errors = (
+        prune_historical_reports()
+    )
+
     print(
         f"[report] Reporte guardado: {timestamped_report}",
         flush=True,
@@ -271,6 +312,26 @@ def main() -> int:
         f"[report] Resultado general: {overall_result}",
         flush=True,
     )
+
+    print(
+        "[report] Reportes históricos conservados: "
+        f"{MAX_HISTORICAL_REPORTS}",
+        flush=True,
+    )
+
+    if deleted_count > 0:
+        print(
+            "[report] Reportes históricos eliminados: "
+            f"{deleted_count}",
+            flush=True,
+        )
+
+    for cleanup_error in cleanup_errors:
+        print(
+            f"[report] WARNING: {cleanup_error}",
+            file=sys.stderr,
+            flush=True,
+        )
 
     return 0
 
