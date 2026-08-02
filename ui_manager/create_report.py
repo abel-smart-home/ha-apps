@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
+import os
 import sys
 from collections import Counter
 from datetime import datetime
@@ -13,6 +15,58 @@ from typing import Any
 OPTIONS_FILE = Path("/data/options.json")
 REPORT_DIR = Path("/config/ui-manager/reports")
 MAX_HISTORICAL_REPORTS = 20
+
+CHECKSUM_TARGETS: dict[str, tuple[str, Path]] = {
+    "mini_graph_card": (
+        "archivo",
+        Path(
+            "/config/www/ui-components/"
+            "mini-graph-card/"
+            "mini-graph-card-bundle.js"
+        ),
+    ),
+    "mushroom": (
+        "archivo",
+        Path(
+            "/config/www/ui-components/"
+            "mushroom/mushroom.js"
+        ),
+    ),
+    "modern_circular_gauge": (
+        "archivo",
+        Path(
+            "/config/www/ui-components/"
+            "modern-circular-gauge/"
+            "modern-circular-gauge.js"
+        ),
+    ),
+    "sonoff": (
+        "árbol de archivos",
+        Path(
+            "/config/custom_components/sonoff"
+        ),
+    ),
+    "spook": (
+        "árbol de archivos",
+        Path(
+            "/config/custom_components/spook"
+        ),
+    ),
+}
+
+IGNORED_DIRECTORY_NAMES = {
+    "__pycache__",
+    ".git",
+}
+
+IGNORED_FILE_NAMES = {
+    ".DS_Store",
+}
+
+IGNORED_FILE_SUFFIXES = {
+    ".pyc",
+    ".pyo",
+}
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -28,11 +82,16 @@ def read_json(path: Path) -> dict[str, Any]:
     return {}
 
 
-def is_enabled(options: dict[str, Any], key: str) -> bool:
+def is_enabled(
+    options: dict[str, Any],
+    key: str,
+) -> bool:
     return options.get(key, True) is True
 
 
-def read_results(path: Path) -> list[dict[str, str]]:
+def read_results(
+    path: Path,
+) -> list[dict[str, str]]:
     results: list[dict[str, str]] = []
 
     try:
@@ -67,7 +126,154 @@ def read_results(path: Path) -> list[dict[str, str]]:
     return results
 
 
-def prune_historical_reports() -> tuple[int, list[str]]:
+def calculate_file_sha256(
+    path: Path,
+) -> str:
+    if not path.is_file():
+        return ""
+
+    digest = hashlib.sha256()
+
+    try:
+        with path.open("rb") as file:
+            while True:
+                chunk = file.read(1024 * 1024)
+
+                if not chunk:
+                    break
+
+                digest.update(chunk)
+    except OSError:
+        return ""
+
+    return digest.hexdigest()
+
+
+def should_ignore_tree_path(
+    path: Path,
+    root: Path,
+) -> bool:
+    try:
+        relative_path = path.relative_to(root)
+    except ValueError:
+        return True
+
+    if any(
+        part in IGNORED_DIRECTORY_NAMES
+        for part in relative_path.parts
+    ):
+        return True
+
+    if path.name in IGNORED_FILE_NAMES:
+        return True
+
+    if path.suffix.lower() in IGNORED_FILE_SUFFIXES:
+        return True
+
+    return False
+
+
+def calculate_tree_sha256(
+    root: Path,
+) -> str:
+    """
+    Genera una huella determinista del contenido de una carpeta.
+
+    Se incluyen:
+    - Rutas relativas.
+    - Contenido de los archivos.
+    - Enlaces simbólicos, cuando existan.
+
+    Se ignoran:
+    - __pycache__
+    - Archivos .pyc y .pyo
+    - Carpetas .git
+    - Archivos .DS_Store
+    """
+    if not root.is_dir():
+        return ""
+
+    digest = hashlib.sha256()
+
+    try:
+        entries = sorted(
+            (
+                path
+                for path in root.rglob("*")
+                if not should_ignore_tree_path(
+                    path,
+                    root,
+                )
+                and (
+                    path.is_file()
+                    or path.is_symlink()
+                )
+            ),
+            key=lambda path: (
+                path.relative_to(root).as_posix()
+            ),
+        )
+    except OSError:
+        return ""
+
+    try:
+        for path in entries:
+            relative_path = (
+                path.relative_to(root).as_posix()
+            )
+
+            digest.update(
+                relative_path.encode("utf-8")
+            )
+            digest.update(b"\0")
+
+            if path.is_symlink():
+                digest.update(b"SYMLINK\0")
+                digest.update(
+                    os.readlink(path).encode("utf-8")
+                )
+                digest.update(b"\0")
+                continue
+
+            digest.update(b"FILE\0")
+
+            with path.open("rb") as file:
+                while True:
+                    chunk = file.read(1024 * 1024)
+
+                    if not chunk:
+                        break
+
+                    digest.update(chunk)
+
+            digest.update(b"\0")
+
+    except OSError:
+        return ""
+
+    return digest.hexdigest()
+
+
+def component_checksum(
+    component_id: str,
+) -> tuple[str, str]:
+    target = CHECKSUM_TARGETS.get(component_id)
+
+    if target is None:
+        return "no aplica", ""
+
+    checksum_type, path = target
+
+    if checksum_type == "archivo":
+        checksum = calculate_file_sha256(path)
+    else:
+        checksum = calculate_tree_sha256(path)
+
+    return checksum_type, checksum
+
+
+def prune_historical_reports(
+) -> tuple[int, list[str]]:
     historical_reports = sorted(
         (
             path
@@ -93,7 +299,7 @@ def prune_historical_reports() -> tuple[int, list[str]]:
             deleted_count += 1
         except OSError as error:
             errors.append(
-                f"No se pudo eliminar "
+                "No se pudo eliminar "
                 f"{report_path.name}: {error}"
             )
 
@@ -120,11 +326,16 @@ def main() -> int:
         for result in results
     )
 
-    error_count = status_counts.get("ERROR", 0)
+    error_count = status_counts.get(
+        "ERROR",
+        0,
+    )
+
     installed_count = status_counts.get(
         "INSTALADO",
         0,
     )
+
     updated_count = status_counts.get(
         "ACTUALIZADO",
         0,
@@ -146,7 +357,11 @@ def main() -> int:
     )
 
     now = datetime.now().astimezone()
-    timestamp = now.strftime("%Y%m%d-%H%M%S")
+
+    timestamp = now.strftime(
+        "%Y%m%d-%H%M%S"
+    )
+
     formatted_date = now.strftime(
         "%Y-%m-%d %H:%M:%S %z"
     )
@@ -192,31 +407,55 @@ def main() -> int:
     if not results:
         lines.extend(
             [
-                "ERROR: No se recibieron resultados "
-                "del proceso de mantenimiento.",
+                (
+                    "ERROR: No se recibieron "
+                    "resultados del proceso de "
+                    "mantenimiento."
+                ),
                 "",
             ]
         )
 
     for result in results:
-        lines.append(
-            f"{result['name']}: {result['status']}"
+        checksum_type, checksum = (
+            component_checksum(result["id"])
         )
 
         lines.append(
-            f"  Versión objetivo: "
+            f"{result['name']}: "
+            f"{result['status']}"
+        )
+
+        lines.append(
+            "  Versión objetivo: "
             f"{result['desired'] or '-'}"
         )
 
         lines.append(
-            f"  Versión anterior: "
+            "  Versión anterior: "
             f"{result['previous'] or '-'}"
         )
 
         lines.append(
-            f"  Versión final: "
+            "  Versión final: "
             f"{result['final'] or '-'}"
         )
+
+        if checksum:
+            lines.append(
+                "  Tipo de huella: "
+                f"{checksum_type}"
+            )
+
+            lines.append(
+                "  SHA-256 instalado: "
+                f"{checksum}"
+            )
+        else:
+            lines.append(
+                "  SHA-256 instalado: "
+                "no disponible"
+            )
 
         if result["message"]:
             lines.append(
@@ -250,6 +489,22 @@ def main() -> int:
                 f"{'activado' if is_enabled(options, 'spook') else 'desactivado'}"
             ),
             "",
+            "INFORMACIÓN DE SEGURIDAD",
+            "-" * 68,
+            (
+                "Las huellas SHA-256 de este reporte "
+                "son informativas."
+            ),
+            (
+                "Todavía no se utilizan para bloquear "
+                "instalaciones o actualizaciones."
+            ),
+            (
+                "Deben compararse entre las "
+                "instalaciones de prueba antes de "
+                "aprobarlas."
+            ),
+            "",
         ]
     )
 
@@ -266,7 +521,9 @@ def main() -> int:
             / f"maintenance-{timestamp}.txt"
         )
 
-        latest_report = REPORT_DIR / "latest.txt"
+        latest_report = (
+            REPORT_DIR / "latest.txt"
+        )
 
         timestamped_report.write_text(
             report_content,
@@ -292,32 +549,39 @@ def main() -> int:
     )
 
     print(
-        f"[report] Reporte guardado: "
+        "[report] Reporte guardado: "
         f"{timestamped_report}",
         flush=True,
     )
 
     print(
-        f"[report] Último reporte: "
+        "[report] Último reporte: "
         f"{latest_report}",
         flush=True,
     )
 
     print(
-        f"[report] Resultado general: "
+        "[report] Resultado general: "
         f"{overall_result}",
         flush=True,
     )
 
     print(
-        "[report] Reportes históricos conservados: "
+        "[report] Inventario SHA-256 incluido",
+        flush=True,
+    )
+
+    print(
+        "[report] Reportes históricos "
+        "conservados: "
         f"{MAX_HISTORICAL_REPORTS}",
         flush=True,
     )
 
     if deleted_count > 0:
         print(
-            "[report] Reportes históricos eliminados: "
+            "[report] Reportes históricos "
+            "eliminados: "
             f"{deleted_count}",
             flush=True,
         )
