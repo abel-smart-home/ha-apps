@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.2
+
+- Retirada la opción visible de prueba controlada de fallo.
+- Agregado inventario SHA-256 de los componentes instalados.
+- Las tarjetas utilizan la huella del archivo JavaScript.
+- Las integraciones utilizan una huella determinista de su árbol de archivos.
+- Se ignoran cachés de Python y archivos temporales.
+- Las huellas todavía son informativas y no bloquean actualizaciones.
+
 ## 0.2.1
 
 - Agregada una prueba controlada de fallo de descarga.
