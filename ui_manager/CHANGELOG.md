@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.10
+
+- Corregida la instalación de Spook.
+- Ahora se utiliza el paquete oficial spook.zip.
+- Agregado soporte para integraciones cuyos archivos están en la raíz del ZIP.
+- Corregido el problema de versión interna 0.0.0 de Spook.
+- Forzada una nueva compilación de la aplicación.
+
+## 0.1.9
+
+- Primer intento de corrección de la instalación de Spook.
+
 ## 0.1.8
 
 - Agregado Spook 5.0.0.
