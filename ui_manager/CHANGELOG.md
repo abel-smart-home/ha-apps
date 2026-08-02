@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.3
+
+- Activada la validación SHA-256 para todos los componentes administrados.
+- Fijadas las huellas aprobadas después de validarlas en dos instalaciones.
+- Las descargas con contenido diferente se rechazan antes de instalarse.
+- Los componentes instalados con huella incorrecta se reparan usando el paquete aprobado.
+- Agregado el estado REPARADO al reporte de mantenimiento.
+- El reporte muestra la huella aprobada, la instalada y el resultado de integridad.
+- Retirado el código de la prueba controlada de fallo.
+
 ## 0.2.2
 
 - Retirada la opción visible de prueba controlada de fallo.
