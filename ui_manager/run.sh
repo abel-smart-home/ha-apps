@@ -1030,6 +1030,36 @@ install_custom_integration() {
 bashio::log.info \
     "Smart Home UI Manager iniciado correctamente"
 
+
+if option_enabled "local_inventory_enabled"; then
+    bashio::log.warning \
+        "Modo de inventario local SHA-256 activado"
+
+    bashio::log.info \
+        "No se instalarán, actualizarán ni repararán componentes"
+
+    if python3 /local_inventory.py; then
+        bashio::log.info \
+            "Inventario local generado correctamente"
+    else
+        inventory_exit_code="$?"
+
+        bashio::log.error \
+            "No se pudo completar el inventario local"
+
+        bashio::log.error \
+            "Revisa tipo, nombre, versión y ruta en la configuración"
+
+        exit "${inventory_exit_code}"
+    fi
+
+    bashio::log.info \
+        "Inventario finalizado. La aplicación se detendrá."
+
+    exit 0
+fi
+
+
 bashio::log.info \
     "Leyendo configuración de componentes"
 
