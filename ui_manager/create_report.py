@@ -2,14 +2,17 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
-import os
 import sys
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+
+from checksum_utils import (
+    calculate_file_sha256,
+    calculate_tree_sha256,
+)
 
 
 OPTIONS_FILE = Path("/data/options.json")
@@ -42,30 +45,35 @@ CHECKSUM_TARGETS: dict[str, tuple[str, Path]] = {
     ),
     "sonoff": (
         "árbol de archivos",
-        Path(
-            "/config/custom_components/sonoff"
-        ),
+        Path("/config/custom_components/sonoff"),
     ),
     "spook": (
         "árbol de archivos",
-        Path(
-            "/config/custom_components/spook"
-        ),
+        Path("/config/custom_components/spook"),
     ),
 }
 
-IGNORED_DIRECTORY_NAMES = {
-    "__pycache__",
-    ".git",
-}
-
-IGNORED_FILE_NAMES = {
-    ".DS_Store",
-}
-
-IGNORED_FILE_SUFFIXES = {
-    ".pyc",
-    ".pyo",
+APPROVED_CHECKSUMS: dict[str, str] = {
+    "mini_graph_card": (
+        "4d8b986f3cd693c0f7771d2f5574008b"
+        "c39c45ecb450aec067906150be2dfabd"
+    ),
+    "mushroom": (
+        "64b170b1a5a6da0029cd30b54518fd9c"
+        "c2b8cd713e34ba1d0a05739c08e32796"
+    ),
+    "modern_circular_gauge": (
+        "14c9165e1204d061ff5143283106b7daa"
+        "5536c69c63e2047b876060c7ca8943e"
+    ),
+    "sonoff": (
+        "e86bba20ef02043e3f6f7a6e256cd6fc"
+        "777d8e6fc51b503b98187a5a02e7a1c9"
+    ),
+    "spook": (
+        "7da7fb098063940902afbacc1a206eb85"
+        "a70e94339575e5eaf036b371c05b29a"
+    ),
 }
 
 
@@ -126,150 +134,50 @@ def read_results(
     return results
 
 
-def calculate_file_sha256(
-    path: Path,
-) -> str:
-    if not path.is_file():
-        return ""
-
-    digest = hashlib.sha256()
-
-    try:
-        with path.open("rb") as file:
-            while True:
-                chunk = file.read(1024 * 1024)
-
-                if not chunk:
-                    break
-
-                digest.update(chunk)
-    except OSError:
-        return ""
-
-    return digest.hexdigest()
-
-
-def should_ignore_tree_path(
-    path: Path,
-    root: Path,
-) -> bool:
-    try:
-        relative_path = path.relative_to(root)
-    except ValueError:
-        return True
-
-    if any(
-        part in IGNORED_DIRECTORY_NAMES
-        for part in relative_path.parts
-    ):
-        return True
-
-    if path.name in IGNORED_FILE_NAMES:
-        return True
-
-    if path.suffix.lower() in IGNORED_FILE_SUFFIXES:
-        return True
-
-    return False
-
-
-def calculate_tree_sha256(
-    root: Path,
-) -> str:
-    """
-    Genera una huella determinista del contenido de una carpeta.
-
-    Se incluyen:
-    - Rutas relativas.
-    - Contenido de los archivos.
-    - Enlaces simbólicos, cuando existan.
-
-    Se ignoran:
-    - __pycache__
-    - Archivos .pyc y .pyo
-    - Carpetas .git
-    - Archivos .DS_Store
-    """
-    if not root.is_dir():
-        return ""
-
-    digest = hashlib.sha256()
-
-    try:
-        entries = sorted(
-            (
-                path
-                for path in root.rglob("*")
-                if not should_ignore_tree_path(
-                    path,
-                    root,
-                )
-                and (
-                    path.is_file()
-                    or path.is_symlink()
-                )
-            ),
-            key=lambda path: (
-                path.relative_to(root).as_posix()
-            ),
-        )
-    except OSError:
-        return ""
-
-    try:
-        for path in entries:
-            relative_path = (
-                path.relative_to(root).as_posix()
-            )
-
-            digest.update(
-                relative_path.encode("utf-8")
-            )
-            digest.update(b"\0")
-
-            if path.is_symlink():
-                digest.update(b"SYMLINK\0")
-                digest.update(
-                    os.readlink(path).encode("utf-8")
-                )
-                digest.update(b"\0")
-                continue
-
-            digest.update(b"FILE\0")
-
-            with path.open("rb") as file:
-                while True:
-                    chunk = file.read(1024 * 1024)
-
-                    if not chunk:
-                        break
-
-                    digest.update(chunk)
-
-            digest.update(b"\0")
-
-    except OSError:
-        return ""
-
-    return digest.hexdigest()
-
-
 def component_checksum(
     component_id: str,
-) -> tuple[str, str]:
+) -> tuple[str, str, str]:
     target = CHECKSUM_TARGETS.get(component_id)
+    expected_checksum = APPROVED_CHECKSUMS.get(
+        component_id,
+        "",
+    )
 
     if target is None:
-        return "no aplica", ""
+        return "no aplica", expected_checksum, ""
 
     checksum_type, path = target
 
     if checksum_type == "archivo":
-        checksum = calculate_file_sha256(path)
+        installed_checksum = calculate_file_sha256(path)
     else:
-        checksum = calculate_tree_sha256(path)
+        installed_checksum = calculate_tree_sha256(path)
 
-    return checksum_type, checksum
+    return (
+        checksum_type,
+        expected_checksum,
+        installed_checksum,
+    )
+
+
+def integrity_status(
+    result_status: str,
+    expected_checksum: str,
+    installed_checksum: str,
+) -> str:
+    if result_status == "OMITIDO":
+        return "NO COMPROBADA"
+
+    if not expected_checksum:
+        return "NO APLICA"
+
+    if not installed_checksum:
+        return "NO DISPONIBLE"
+
+    if installed_checksum == expected_checksum:
+        return "COINCIDE"
+
+    return "NO COINCIDE"
 
 
 def prune_historical_reports(
@@ -326,26 +234,49 @@ def main() -> int:
         for result in results
     )
 
-    error_count = status_counts.get(
-        "ERROR",
-        0,
-    )
+    integrity_details: dict[str, tuple[str, str, str, str]] = {}
+    integrity_mismatch_count = 0
 
-    installed_count = status_counts.get(
-        "INSTALADO",
-        0,
-    )
+    for result in results:
+        (
+            checksum_type,
+            expected_checksum,
+            installed_checksum,
+        ) = component_checksum(result["id"])
 
-    updated_count = status_counts.get(
-        "ACTUALIZADO",
-        0,
-    )
+        current_integrity_status = integrity_status(
+            result["status"],
+            expected_checksum,
+            installed_checksum,
+        )
+
+        integrity_details[result["id"]] = (
+            checksum_type,
+            expected_checksum,
+            installed_checksum,
+            current_integrity_status,
+        )
+
+        if current_integrity_status in {
+            "NO COINCIDE",
+            "NO DISPONIBLE",
+        }:
+            integrity_mismatch_count += 1
+
+    error_count = status_counts.get("ERROR", 0)
+    installed_count = status_counts.get("INSTALADO", 0)
+    updated_count = status_counts.get("ACTUALIZADO", 0)
+    repaired_count = status_counts.get("REPARADO", 0)
 
     if not results:
         overall_result = "REVISAR"
-    elif error_count > 0:
+    elif error_count > 0 or integrity_mismatch_count > 0:
         overall_result = "REVISAR"
-    elif installed_count > 0 or updated_count > 0:
+    elif (
+        installed_count > 0
+        or updated_count > 0
+        or repaired_count > 0
+    ):
         overall_result = "CAMBIOS APLICADOS"
     else:
         overall_result = "CORRECTO"
@@ -357,11 +288,7 @@ def main() -> int:
     )
 
     now = datetime.now().astimezone()
-
-    timestamp = now.strftime(
-        "%Y%m%d-%H%M%S"
-    )
-
+    timestamp = now.strftime("%Y%m%d-%H%M%S")
     formatted_date = now.strftime(
         "%Y-%m-%d %H:%M:%S %z"
     )
@@ -392,12 +319,20 @@ def main() -> int:
             f"{status_counts.get('ACTUALIZADO', 0)}"
         ),
         (
+            "Reparados: "
+            f"{status_counts.get('REPARADO', 0)}"
+        ),
+        (
             "Omitidos: "
             f"{status_counts.get('OMITIDO', 0)}"
         ),
         (
             "Errores: "
             f"{status_counts.get('ERROR', 0)}"
+        ),
+        (
+            "Fallos de integridad actuales: "
+            f"{integrity_mismatch_count}"
         ),
         "",
         "COMPONENTES",
@@ -408,54 +343,51 @@ def main() -> int:
         lines.extend(
             [
                 (
-                    "ERROR: No se recibieron "
-                    "resultados del proceso de "
-                    "mantenimiento."
+                    "ERROR: No se recibieron resultados "
+                    "del proceso de mantenimiento."
                 ),
                 "",
             ]
         )
 
     for result in results:
-        checksum_type, checksum = (
-            component_checksum(result["id"])
-        )
+        (
+            checksum_type,
+            expected_checksum,
+            installed_checksum,
+            current_integrity_status,
+        ) = integrity_details[result["id"]]
 
         lines.append(
-            f"{result['name']}: "
-            f"{result['status']}"
+            f"{result['name']}: {result['status']}"
         )
-
         lines.append(
             "  Versión objetivo: "
             f"{result['desired'] or '-'}"
         )
-
         lines.append(
             "  Versión anterior: "
             f"{result['previous'] or '-'}"
         )
-
         lines.append(
             "  Versión final: "
             f"{result['final'] or '-'}"
         )
-
-        if checksum:
-            lines.append(
-                "  Tipo de huella: "
-                f"{checksum_type}"
-            )
-
-            lines.append(
-                "  SHA-256 instalado: "
-                f"{checksum}"
-            )
-        else:
-            lines.append(
-                "  SHA-256 instalado: "
-                "no disponible"
-            )
+        lines.append(
+            f"  Tipo de huella: {checksum_type}"
+        )
+        lines.append(
+            "  SHA-256 aprobada: "
+            f"{expected_checksum or 'no aplica'}"
+        )
+        lines.append(
+            "  SHA-256 instalada: "
+            f"{installed_checksum or 'no disponible'}"
+        )
+        lines.append(
+            "  Integridad: "
+            f"{current_integrity_status}"
+        )
 
         if result["message"]:
             lines.append(
@@ -492,17 +424,16 @@ def main() -> int:
             "INFORMACIÓN DE SEGURIDAD",
             "-" * 68,
             (
-                "Las huellas SHA-256 de este reporte "
-                "son informativas."
+                "La validación SHA-256 está activa para "
+                "instalaciones, actualizaciones y reparaciones."
             ),
             (
-                "Todavía no se utilizan para bloquear "
-                "instalaciones o actualizaciones."
+                "Una descarga con contenido diferente a la "
+                "huella aprobada es rechazada."
             ),
             (
-                "Deben compararse entre las "
-                "instalaciones de prueba antes de "
-                "aprobarlas."
+                "Las huellas protegen contra archivos alterados, "
+                "corruptos o reemplazados en el origen aprobado."
             ),
             "",
         ]
@@ -521,9 +452,7 @@ def main() -> int:
             / f"maintenance-{timestamp}.txt"
         )
 
-        latest_report = (
-            REPORT_DIR / "latest.txt"
-        )
+        latest_report = REPORT_DIR / "latest.txt"
 
         timestamped_report.write_text(
             report_content,
@@ -549,39 +478,37 @@ def main() -> int:
     )
 
     print(
-        "[report] Reporte guardado: "
+        f"[report] Reporte guardado: "
         f"{timestamped_report}",
         flush=True,
     )
 
     print(
-        "[report] Último reporte: "
+        f"[report] Último reporte: "
         f"{latest_report}",
         flush=True,
     )
 
     print(
-        "[report] Resultado general: "
+        f"[report] Resultado general: "
         f"{overall_result}",
         flush=True,
     )
 
     print(
-        "[report] Inventario SHA-256 incluido",
+        "[report] Validación SHA-256 activa",
         flush=True,
     )
 
     print(
-        "[report] Reportes históricos "
-        "conservados: "
+        "[report] Reportes históricos conservados: "
         f"{MAX_HISTORICAL_REPORTS}",
         flush=True,
     )
 
     if deleted_count > 0:
         print(
-            "[report] Reportes históricos "
-            "eliminados: "
+            "[report] Reportes históricos eliminados: "
             f"{deleted_count}",
             flush=True,
         )
