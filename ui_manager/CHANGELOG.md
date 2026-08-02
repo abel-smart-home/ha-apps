@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.14
+
+- Agregados reportes de mantenimiento.
+- El reporte muestra componentes activados, omitidos y versiones instaladas.
+- El reporte indica si es necesario reiniciar Home Assistant Core.
+- Se conserva un reporte con fecha y un archivo latest.txt.
+
 ## 0.1.13
 
 - Corregido el reinicio continuo después del mantenimiento.
