@@ -23,3 +23,10 @@
 
 - Agregado Modern Circular Gauge 0.14.1.
 - Instalación y registro automático de Modern Circular Gauge.
+
+## 0.1.7
+
+- Agregado SonoffLAN 3.12.2.
+- Instalación automática de la integración SonoffLAN.
+- Agregados respaldo y rollback para integraciones personalizadas.
+- Agregada validación de archivos ZIP.
