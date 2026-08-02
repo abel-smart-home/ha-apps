@@ -3,109 +3,38 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from checksum_utils import (
-    calculate_file_sha256,
-    calculate_tree_sha256,
-)
+from checksum_utils import calculate_file_sha256, calculate_tree_sha256
 
 
-OPTIONS_FILE = Path("/data/options.json")
-REPORT_DIR = Path("/config/ui-manager/reports")
+OPTIONS_FILE = Path(os.environ.get("UI_MANAGER_OPTIONS_FILE", "/data/options.json"))
+CONFIG_ROOT = Path(os.environ.get("UI_MANAGER_CONFIG_ROOT", "/config"))
+REPORT_DIR = CONFIG_ROOT / "ui-manager" / "reports"
 MAX_HISTORICAL_REPORTS = 20
-
-CHECKSUM_TARGETS: dict[str, tuple[str, Path]] = {
-    "mini_graph_card": (
-        "archivo",
-        Path(
-            "/config/www/ui-components/"
-            "mini-graph-card/"
-            "mini-graph-card-bundle.js"
-        ),
-    ),
-    "mushroom": (
-        "archivo",
-        Path(
-            "/config/www/ui-components/"
-            "mushroom/mushroom.js"
-        ),
-    ),
-    "modern_circular_gauge": (
-        "archivo",
-        Path(
-            "/config/www/ui-components/"
-            "modern-circular-gauge/"
-            "modern-circular-gauge.js"
-        ),
-    ),
-    "sonoff": (
-        "árbol de archivos",
-        Path("/config/custom_components/sonoff"),
-    ),
-    "spook": (
-        "árbol de archivos",
-        Path("/config/custom_components/spook"),
-    ),
-}
-
-APPROVED_CHECKSUMS: dict[str, str] = {
-    "mini_graph_card": (
-        "4d8b986f3cd693c0f7771d2f5574008b"
-        "c39c45ecb450aec067906150be2dfabd"
-    ),
-    "mushroom": (
-        "64b170b1a5a6da0029cd30b54518fd9c"
-        "c2b8cd713e34ba1d0a05739c08e32796"
-    ),
-    "modern_circular_gauge": (
-        "14c9165e1204d061ff5143283106b7daa"
-        "5536c69c63e2047b876060c7ca8943e"
-    ),
-    "sonoff": (
-        "e86bba20ef02043e3f6f7a6e256cd6fc"
-        "777d8e6fc51b503b98187a5a02e7a1c9"
-    ),
-    "spook": (
-        "7da7fb098063940902afbacc1a206eb85"
-        "a70e94339575e5eaf036b371c05b29a"
-    ),
-}
+DEFAULT_CATALOG = Path("/components.json")
 
 
 def read_json(path: Path) -> dict[str, Any]:
     try:
         with path.open("r", encoding="utf-8") as file:
             data = json.load(file)
-
-        if isinstance(data, dict):
-            return data
     except (OSError, json.JSONDecodeError):
-        pass
+        return {}
 
-    return {}
-
-
-def is_enabled(
-    options: dict[str, Any],
-    key: str,
-) -> bool:
-    return options.get(key, True) is True
+    return data if isinstance(data, dict) else {}
 
 
-def read_results(
-    path: Path,
-) -> list[dict[str, str]]:
+def read_results(path: Path) -> list[dict[str, str]]:
     results: list[dict[str, str]] = []
 
     try:
-        lines = path.read_text(
-            encoding="utf-8",
-        ).splitlines()
+        lines = path.read_text(encoding="utf-8").splitlines()
     except OSError:
         return results
 
@@ -114,7 +43,6 @@ def read_results(
             continue
 
         fields = line.split("\t", 7)
-
         while len(fields) < 8:
             fields.append("")
 
@@ -134,30 +62,66 @@ def read_results(
     return results
 
 
-def component_checksum(
-    component_id: str,
+def load_catalog(path: Path) -> tuple[str, dict[str, dict[str, Any]]]:
+    data = read_json(path)
+    catalog_version = data.get("catalog_version", "desconocido")
+    raw_components = data.get("components", [])
+
+    if not isinstance(catalog_version, str):
+        catalog_version = "desconocido"
+
+    components: dict[str, dict[str, Any]] = {}
+    if isinstance(raw_components, list):
+        for item in raw_components:
+            if not isinstance(item, dict):
+                continue
+            component_id = item.get("id")
+            if isinstance(component_id, str) and component_id:
+                components[component_id] = item
+
+    return catalog_version, components
+
+
+def map_config_path(path_text: str) -> Path:
+    path = Path(path_text)
+    try:
+        relative = path.relative_to("/config")
+    except ValueError:
+        return path
+    return CONFIG_ROOT / relative
+
+
+def checksum_details(
+    component: dict[str, Any],
 ) -> tuple[str, str, str]:
-    target = CHECKSUM_TARGETS.get(component_id)
-    expected_checksum = APPROVED_CHECKSUMS.get(
-        component_id,
-        "",
-    )
+    expected = component.get("sha256", "")
+    expected_checksum = expected if isinstance(expected, str) else ""
+    component_type = component.get("type")
 
-    if target is None:
-        return "no aplica", expected_checksum, ""
+    if component_type == "frontend":
+        install_dir = component.get("install_dir")
+        filename = component.get("filename")
+        if not isinstance(install_dir, str) or not isinstance(filename, str):
+            return "archivo", expected_checksum, ""
+        installed_path = map_config_path(install_dir) / filename
+        return (
+            "archivo",
+            expected_checksum,
+            calculate_file_sha256(installed_path),
+        )
 
-    checksum_type, path = target
+    if component_type == "integration":
+        integration_id = component.get("integration_id")
+        if not isinstance(integration_id, str):
+            return "árbol de archivos", expected_checksum, ""
+        installed_path = CONFIG_ROOT / "custom_components" / integration_id
+        return (
+            "árbol de archivos",
+            expected_checksum,
+            calculate_tree_sha256(installed_path),
+        )
 
-    if checksum_type == "archivo":
-        installed_checksum = calculate_file_sha256(path)
-    else:
-        installed_checksum = calculate_tree_sha256(path)
-
-    return (
-        checksum_type,
-        expected_checksum,
-        installed_checksum,
-    )
+    return "no aplica", expected_checksum, ""
 
 
 def integrity_status(
@@ -167,37 +131,31 @@ def integrity_status(
 ) -> str:
     if result_status == "OMITIDO":
         return "NO COMPROBADA"
-
     if not expected_checksum:
         return "NO APLICA"
-
     if not installed_checksum:
         return "NO DISPONIBLE"
-
     if installed_checksum == expected_checksum:
         return "COINCIDE"
-
     return "NO COINCIDE"
 
 
-def prune_historical_reports(
-) -> tuple[int, list[str]]:
+def is_enabled(options: dict[str, Any], option_name: str) -> bool:
+    return options.get(option_name, True) is True
+
+
+def prune_historical_reports() -> tuple[int, list[str]]:
     historical_reports = sorted(
         (
             path
-            for path in REPORT_DIR.glob(
-                "maintenance-*.txt"
-            )
+            for path in REPORT_DIR.glob("maintenance-*.txt")
             if path.is_file()
         ),
         key=lambda path: path.name,
         reverse=True,
     )
 
-    reports_to_delete = historical_reports[
-        MAX_HISTORICAL_REPORTS:
-    ]
-
+    reports_to_delete = historical_reports[MAX_HISTORICAL_REPORTS:]
     deleted_count = 0
     errors: list[str] = []
 
@@ -206,134 +164,79 @@ def prune_historical_reports(
             report_path.unlink()
             deleted_count += 1
         except OSError as error:
-            errors.append(
-                "No se pudo eliminar "
-                f"{report_path.name}: {error}"
-            )
+            errors.append(f"No se pudo eliminar {report_path.name}: {error}")
 
     return deleted_count, errors
 
 
 def main() -> int:
     restart_required = (
-        len(sys.argv) > 1
-        and sys.argv[1].strip().lower() == "true"
+        len(sys.argv) > 1 and sys.argv[1].strip().lower() == "true"
     )
-
     results_file = (
         Path(sys.argv[2])
         if len(sys.argv) > 2
         else Path("/tmp/ui_manager_results.tsv")
     )
+    catalog_file = Path(sys.argv[3]) if len(sys.argv) > 3 else DEFAULT_CATALOG
 
     options = read_json(OPTIONS_FILE)
     results = read_results(results_file)
+    catalog_version, catalog = load_catalog(catalog_file)
 
-    status_counts = Counter(
-        result["status"]
-        for result in results
-    )
-
-    integrity_details: dict[str, tuple[str, str, str, str]] = {}
-    integrity_mismatch_count = 0
+    status_counts = Counter(result["status"] for result in results)
+    integrity_data: dict[str, tuple[str, str, str, str]] = {}
+    integrity_failures = 0
 
     for result in results:
-        (
+        component = catalog.get(result["id"], {})
+        checksum_type, expected, installed = checksum_details(component)
+        status_value = integrity_status(result["status"], expected, installed)
+        integrity_data[result["id"]] = (
             checksum_type,
-            expected_checksum,
-            installed_checksum,
-        ) = component_checksum(result["id"])
-
-        current_integrity_status = integrity_status(
-            result["status"],
-            expected_checksum,
-            installed_checksum,
+            expected,
+            installed,
+            status_value,
         )
-
-        integrity_details[result["id"]] = (
-            checksum_type,
-            expected_checksum,
-            installed_checksum,
-            current_integrity_status,
-        )
-
-        if current_integrity_status in {
-            "NO COINCIDE",
-            "NO DISPONIBLE",
-        }:
-            integrity_mismatch_count += 1
+        if status_value in {"NO COINCIDE", "NO DISPONIBLE"}:
+            integrity_failures += 1
 
     error_count = status_counts.get("ERROR", 0)
-    installed_count = status_counts.get("INSTALADO", 0)
-    updated_count = status_counts.get("ACTUALIZADO", 0)
-    repaired_count = status_counts.get("REPARADO", 0)
+    changed_count = sum(
+        status_counts.get(status, 0)
+        for status in ("INSTALADO", "ACTUALIZADO", "REPARADO")
+    )
 
-    if not results:
+    if not results or error_count > 0 or integrity_failures > 0:
         overall_result = "REVISAR"
-    elif error_count > 0 or integrity_mismatch_count > 0:
-        overall_result = "REVISAR"
-    elif (
-        installed_count > 0
-        or updated_count > 0
-        or repaired_count > 0
-    ):
+    elif changed_count > 0:
         overall_result = "CAMBIOS APLICADOS"
     else:
         overall_result = "CORRECTO"
 
-    restart_text = (
-        "REQUERIDO"
-        if restart_required
-        else "NO REQUERIDO"
-    )
-
+    restart_text = "REQUERIDO" if restart_required else "NO REQUERIDO"
     now = datetime.now().astimezone()
     timestamp = now.strftime("%Y%m%d-%H%M%S")
-    formatted_date = now.strftime(
-        "%Y-%m-%d %H:%M:%S %z"
-    )
+    formatted_date = now.strftime("%Y-%m-%d %H:%M:%S %z")
 
     lines = [
         "SMART HOME UI MANAGER",
         "REPORTE DE MANTENIMIENTO",
         "=" * 68,
         f"Fecha: {formatted_date}",
+        f"Catálogo: {catalog_version}",
         f"Resultado general: {overall_result}",
-        (
-            "Reinicio de Home Assistant Core: "
-            f"{restart_text}"
-        ),
+        f"Reinicio de Home Assistant Core: {restart_text}",
         "",
         "RESUMEN",
         "-" * 68,
-        (
-            "Verificados: "
-            f"{status_counts.get('VERIFICADO', 0)}"
-        ),
-        (
-            "Instalados: "
-            f"{status_counts.get('INSTALADO', 0)}"
-        ),
-        (
-            "Actualizados: "
-            f"{status_counts.get('ACTUALIZADO', 0)}"
-        ),
-        (
-            "Reparados: "
-            f"{status_counts.get('REPARADO', 0)}"
-        ),
-        (
-            "Omitidos: "
-            f"{status_counts.get('OMITIDO', 0)}"
-        ),
-        (
-            "Errores: "
-            f"{status_counts.get('ERROR', 0)}"
-        ),
-        (
-            "Fallos de integridad actuales: "
-            f"{integrity_mismatch_count}"
-        ),
+        f"Verificados: {status_counts.get('VERIFICADO', 0)}",
+        f"Instalados: {status_counts.get('INSTALADO', 0)}",
+        f"Actualizados: {status_counts.get('ACTUALIZADO', 0)}",
+        f"Reparados: {status_counts.get('REPARADO', 0)}",
+        f"Omitidos: {status_counts.get('OMITIDO', 0)}",
+        f"Errores: {status_counts.get('ERROR', 0)}",
+        f"Fallos de integridad actuales: {integrity_failures}",
         "",
         "COMPONENTES",
         "-" * 68,
@@ -342,99 +245,48 @@ def main() -> int:
     if not results:
         lines.extend(
             [
-                (
-                    "ERROR: No se recibieron resultados "
-                    "del proceso de mantenimiento."
-                ),
+                "ERROR: No se recibieron resultados del mantenimiento.",
                 "",
             ]
         )
 
     for result in results:
-        (
-            checksum_type,
-            expected_checksum,
-            installed_checksum,
-            current_integrity_status,
-        ) = integrity_details[result["id"]]
-
-        lines.append(
-            f"{result['name']}: {result['status']}"
-        )
-        lines.append(
-            "  Versión objetivo: "
-            f"{result['desired'] or '-'}"
-        )
-        lines.append(
-            "  Versión anterior: "
-            f"{result['previous'] or '-'}"
-        )
-        lines.append(
-            "  Versión final: "
-            f"{result['final'] or '-'}"
-        )
-        lines.append(
-            f"  Tipo de huella: {checksum_type}"
-        )
-        lines.append(
-            "  SHA-256 aprobada: "
-            f"{expected_checksum or 'no aplica'}"
-        )
-        lines.append(
-            "  SHA-256 instalada: "
-            f"{installed_checksum or 'no disponible'}"
-        )
-        lines.append(
-            "  Integridad: "
-            f"{current_integrity_status}"
+        checksum_type, expected, installed, integrity = integrity_data.get(
+            result["id"],
+            ("no aplica", "", "", "NO DISPONIBLE"),
         )
 
+        lines.append(f"{result['name']}: {result['status']}")
+        lines.append(f"  Versión objetivo: {result['desired'] or '-'}")
+        lines.append(f"  Versión anterior: {result['previous'] or '-'}")
+        lines.append(f"  Versión final: {result['final'] or '-'}")
+        lines.append(f"  Tipo de huella: {checksum_type}")
+        lines.append(f"  SHA-256 aprobada: {expected or 'no disponible'}")
+        lines.append(f"  SHA-256 instalada: {installed or 'no disponible'}")
+        lines.append(f"  Integridad: {integrity}")
         if result["message"]:
-            lines.append(
-                f"  Detalle: {result['message']}"
-            )
-
+            lines.append(f"  Detalle: {result['message']}")
         lines.append("")
+
+    lines.extend(["CONFIGURACIÓN UTILIZADA", "-" * 68])
+
+    for component in catalog.values():
+        name = component.get("name", component.get("id", "Componente"))
+        option_name = component.get("option", "")
+        if not isinstance(name, str):
+            name = "Componente"
+        if not isinstance(option_name, str) or not option_name:
+            continue
+        state = "activado" if is_enabled(options, option_name) else "desactivado"
+        lines.append(f"{name}: {state}")
 
     lines.extend(
         [
-            "CONFIGURACIÓN UTILIZADA",
-            "-" * 68,
-            (
-                "Mini Graph Card: "
-                f"{'activado' if is_enabled(options, 'mini_graph_card') else 'desactivado'}"
-            ),
-            (
-                "Mushroom: "
-                f"{'activado' if is_enabled(options, 'mushroom') else 'desactivado'}"
-            ),
-            (
-                "Modern Circular Gauge: "
-                f"{'activado' if is_enabled(options, 'modern_circular_gauge') else 'desactivado'}"
-            ),
-            (
-                "SonoffLAN: "
-                f"{'activado' if is_enabled(options, 'sonofflan') else 'desactivado'}"
-            ),
-            (
-                "Spook: "
-                f"{'activado' if is_enabled(options, 'spook') else 'desactivado'}"
-            ),
             "",
-            "INFORMACIÓN DE SEGURIDAD",
+            "INFORMACIÓN DEL CATÁLOGO",
             "-" * 68,
-            (
-                "La validación SHA-256 está activa para "
-                "instalaciones, actualizaciones y reparaciones."
-            ),
-            (
-                "Una descarga con contenido diferente a la "
-                "huella aprobada es rechazada."
-            ),
-            (
-                "Las huellas protegen contra archivos alterados, "
-                "corruptos o reemplazados en el origen aprobado."
-            ),
+            "Versiones, URL, rutas y huellas se leen desde components.json.",
+            "Las descargas con una huella diferente se rechazan.",
             "",
         ]
     )
@@ -442,74 +294,34 @@ def main() -> int:
     report_content = "\n".join(lines)
 
     try:
-        REPORT_DIR.mkdir(
-            parents=True,
-            exist_ok=True,
-        )
-
-        timestamped_report = (
-            REPORT_DIR
-            / f"maintenance-{timestamp}.txt"
-        )
-
+        REPORT_DIR.mkdir(parents=True, exist_ok=True)
+        timestamped_report = REPORT_DIR / f"maintenance-{timestamp}.txt"
         latest_report = REPORT_DIR / "latest.txt"
-
-        timestamped_report.write_text(
-            report_content,
-            encoding="utf-8",
-        )
-
-        latest_report.write_text(
-            report_content,
-            encoding="utf-8",
-        )
-
+        timestamped_report.write_text(report_content, encoding="utf-8")
+        latest_report.write_text(report_content, encoding="utf-8")
     except OSError as error:
         print(
-            "[report] ERROR: No se pudo guardar "
-            f"el reporte: {error}",
+            f"[report] ERROR: No se pudo guardar el reporte: {error}",
             file=sys.stderr,
             flush=True,
         )
         return 1
 
-    deleted_count, cleanup_errors = (
-        prune_historical_reports()
-    )
+    deleted_count, cleanup_errors = prune_historical_reports()
 
+    print(f"[report] Reporte guardado: {timestamped_report}", flush=True)
+    print(f"[report] Último reporte: {latest_report}", flush=True)
+    print(f"[report] Catálogo utilizado: {catalog_version}", flush=True)
+    print(f"[report] Resultado general: {overall_result}", flush=True)
+    print("[report] Validación SHA-256 activa", flush=True)
     print(
-        f"[report] Reporte guardado: "
-        f"{timestamped_report}",
-        flush=True,
-    )
-
-    print(
-        f"[report] Último reporte: "
-        f"{latest_report}",
-        flush=True,
-    )
-
-    print(
-        f"[report] Resultado general: "
-        f"{overall_result}",
-        flush=True,
-    )
-
-    print(
-        "[report] Validación SHA-256 activa",
-        flush=True,
-    )
-
-    print(
-        "[report] Reportes históricos conservados: "
-        f"{MAX_HISTORICAL_REPORTS}",
+        f"[report] Reportes históricos conservados: {MAX_HISTORICAL_REPORTS}",
         flush=True,
     )
 
     if deleted_count > 0:
         print(
-            "[report] Reportes históricos eliminados: "
-            f"{deleted_count}",
+            f"[report] Reportes históricos eliminados: {deleted_count}",
             flush=True,
         )
 
