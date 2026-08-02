@@ -1,6 +1,6 @@
 name: Smart Home UI Manager
 description: Instala y administra componentes personalizados para Home Assistant
-version: "0.1.5"
+version: "0.1.6"
 slug: ui_manager
 init: false
 
