@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.4
+
+- Agregado modo de inventario local SHA-256 en solo lectura.
+- Permite calcular la huella de tarjetas ya instaladas por HACS.
+- Permite calcular la huella de integraciones ya instaladas por HACS.
+- El modo de inventario no instala, actualiza, repara ni elimina componentes.
+- Las rutas se limitan a la carpeta /config.
+- Las integraciones se validan mediante manifest.json.
+- Se generan reportes en /config/ui-manager/checksum-candidates.
+- Se conservan los últimos 20 inventarios y latest.txt.
+- El inventario local es exclusivo y omite el mantenimiento normal.
+
 ## 0.2.3
 
 - Activada la validación SHA-256 para todos los componentes administrados.
