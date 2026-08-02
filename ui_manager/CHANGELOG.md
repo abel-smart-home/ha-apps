@@ -18,3 +18,8 @@
 
 - Agregado Mini Graph Card 0.13.0.
 - Instalación automática dentro de la carpeta de configuración.
+
+## 0.1.6
+
+- Agregado Modern Circular Gauge 0.14.1.
+- Instalación y registro automático de Modern Circular Gauge.
