@@ -13,7 +13,8 @@ LABEL \
 RUN apk add --no-cache \
     curl \
     python3 \
-    py3-websocket-client
+    py3-websocket-client \
+    unzip
 
 COPY run.sh /run.sh
 COPY register_resource.py /register_resource.py
