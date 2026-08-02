@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.4.0
+
+- Agregada restauración manual de respaldos para integraciones personalizadas.
+- La restauración funciona como un modo exclusivo y no ejecuta el mantenimiento normal.
+- Se puede restaurar el respaldo más reciente o seleccionar uno por fecha.
+- Antes de restaurar se crea un respaldo de seguridad de la integración actual.
+- Agregados metadatos con versión y SHA-256 para respaldos nuevos.
+- Los respaldos antiguos sin metadatos siguen siendo compatibles.
+- Limitados los respaldos a un valor configurable entre 1 y 20 por integración.
+- El valor predeterminado conserva los últimos 5 respaldos.
+- Agregados reportes de restauración y retención de los últimos 20 reportes.
+- Agregada validación para impedir inventario y restauración simultáneos.
+
 ## 0.3.0
 
 - Agregado components.json como catálogo único de componentes.
