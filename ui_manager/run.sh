@@ -405,11 +405,32 @@ bashio::log.info \
 
 if [[ "${INTEGRATION_CHANGED}" == "true" ]]; then
     bashio::log.warning \
-        "Reinicia Home Assistant Core para aplicar los cambios"
+        "Se instaló o actualizó una integración personalizada"
+
+    bashio::log.warning \
+        "Es necesario reiniciar Home Assistant Core"
 else
     bashio::log.info \
         "No es necesario reiniciar Home Assistant Core"
 fi
+
+
+bashio::log.info \
+    "Generando reporte de mantenimiento"
+
+if python3 /create_report.py \
+    "${INTEGRATION_CHANGED}"; then
+
+    bashio::log.info \
+        "Reporte de mantenimiento generado correctamente"
+else
+    bashio::log.warning \
+        "El mantenimiento terminó, pero no se pudo generar el reporte"
+fi
+
+
+bashio::log.info \
+    "Comprobación de componentes finalizada"
 
 bashio::log.info \
     "Mantenimiento finalizado. La aplicación se detendrá."
