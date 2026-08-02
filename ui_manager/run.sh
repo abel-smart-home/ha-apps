@@ -37,13 +37,36 @@ PY
 bashio::log.info \
     "Smart Home UI Manager iniciado correctamente"
 
+inventory_enabled="false"
+restore_enabled="false"
 
 if bashio::config.true "local_inventory_enabled"; then
+    inventory_enabled="true"
+fi
+
+if bashio::config.true "restore_backup_enabled"; then
+    restore_enabled="true"
+fi
+
+if [[ "${inventory_enabled}" == "true" ]] \
+    && [[ "${restore_enabled}" == "true" ]]; then
+
+    bashio::log.error \
+        "Inventario local y restauración no pueden ejecutarse al mismo tiempo"
+
+    bashio::log.error \
+        "Desactiva uno de los dos modos y vuelve a iniciar la aplicación"
+
+    exit 1
+fi
+
+
+if [[ "${inventory_enabled}" == "true" ]]; then
     bashio::log.warning \
         "Modo de inventario local SHA-256 activado"
 
     bashio::log.info \
-        "No se instalarán, actualizarán ni repararán componentes"
+        "No se instalarán, actualizarán, repararán ni restaurarán componentes"
 
     if python3 /local_inventory.py; then
         bashio::log.info \
@@ -76,9 +99,47 @@ if ! python3 /component_manager.py \
         "El catálogo components.json no es válido"
 
     bashio::log.error \
-        "No se ejecutará el mantenimiento"
+        "No se ejecutará ninguna operación"
 
     exit 1
+fi
+
+
+if [[ "${restore_enabled}" == "true" ]]; then
+    bashio::log.warning \
+        "Modo de restauración manual activado"
+
+    bashio::log.info \
+        "No se ejecutará el mantenimiento normal"
+
+    if python3 /backup_manager.py \
+        restore \
+        "${CATALOG_FILE}"; then
+
+        bashio::log.info \
+            "Restauración finalizada correctamente"
+
+        bashio::log.warning \
+            "Reinicia Home Assistant Core antes de comprobar la integración"
+
+        bashio::log.info \
+            "La aplicación se detendrá"
+
+        exit 0
+    fi
+
+    restore_exit_code="$?"
+
+    bashio::log.error \
+        "No se pudo completar la restauración"
+
+    bashio::log.error \
+        "Código de salida: ${restore_exit_code}"
+
+    bashio::log.info \
+        "La aplicación se detendrá"
+
+    exit "${restore_exit_code}"
 fi
 
 
