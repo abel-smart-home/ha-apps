@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sys
+from collections import Counter
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -27,68 +28,52 @@ def read_json(path: Path) -> dict[str, Any]:
     return {}
 
 
-def read_text(path: Path) -> str:
-    try:
-        return path.read_text(encoding="utf-8").strip()
-    except OSError:
-        return ""
-
-
 def is_enabled(options: dict[str, Any], key: str) -> bool:
     return options.get(key, True) is True
 
 
-def frontend_status(
-    options: dict[str, Any],
-    option_key: str,
-    version_file: Path,
-    component_file: Path,
-) -> tuple[str, str]:
-    if not is_enabled(options, option_key):
-        return "OMITIDO", "-"
+def read_results(path: Path) -> list[dict[str, str]]:
+    results: list[dict[str, str]] = []
 
-    if not component_file.is_file():
-        return "NO INSTALADO", "-"
+    try:
+        lines = path.read_text(
+            encoding="utf-8",
+        ).splitlines()
+    except OSError:
+        return results
 
-    version = read_text(version_file)
+    for line in lines:
+        if not line.strip():
+            continue
 
-    if not version:
-        version = "desconocida"
+        fields = line.split("\t", 7)
 
-    return "VERIFICADO", version
+        while len(fields) < 8:
+            fields.append("")
 
+        results.append(
+            {
+                "id": fields[0],
+                "name": fields[1],
+                "type": fields[2],
+                "desired": fields[3],
+                "previous": fields[4],
+                "final": fields[5],
+                "status": fields[6],
+                "message": fields[7],
+            }
+        )
 
-def integration_status(
-    options: dict[str, Any],
-    option_key: str,
-    manifest_file: Path,
-) -> tuple[str, str]:
-    if not is_enabled(options, option_key):
-        return "OMITIDO", "-"
-
-    if not manifest_file.is_file():
-        return "NO INSTALADO", "-"
-
-    manifest = read_json(manifest_file)
-    version = manifest.get("version", "desconocida")
-
-    if not isinstance(version, str) or not version.strip():
-        version = "desconocida"
-
-    return "VERIFICADO", version
+    return results
 
 
 def prune_historical_reports() -> tuple[int, list[str]]:
-    """
-    Conserva solamente los reportes históricos más recientes.
-
-    latest.txt no coincide con el patrón maintenance-*.txt,
-    por lo que no se incluye en este límite.
-    """
     historical_reports = sorted(
         (
             path
-            for path in REPORT_DIR.glob("maintenance-*.txt")
+            for path in REPORT_DIR.glob(
+                "maintenance-*.txt"
+            )
             if path.is_file()
         ),
         key=lambda path: path.name,
@@ -108,7 +93,8 @@ def prune_historical_reports() -> tuple[int, list[str]]:
             deleted_count += 1
         except OSError as error:
             errors.append(
-                f"No se pudo eliminar {report_path.name}: {error}"
+                f"No se pudo eliminar "
+                f"{report_path.name}: {error}"
             )
 
     return deleted_count, errors
@@ -120,90 +106,38 @@ def main() -> int:
         and sys.argv[1].strip().lower() == "true"
     )
 
+    results_file = (
+        Path(sys.argv[2])
+        if len(sys.argv) > 2
+        else Path("/tmp/ui_manager_results.tsv")
+    )
+
     options = read_json(OPTIONS_FILE)
+    results = read_results(results_file)
 
-    components = [
-        (
-            "Mini Graph Card",
-            *frontend_status(
-                options,
-                "mini_graph_card",
-                Path(
-                    "/config/www/ui-components/"
-                    "mini-graph-card/version"
-                ),
-                Path(
-                    "/config/www/ui-components/"
-                    "mini-graph-card/"
-                    "mini-graph-card-bundle.js"
-                ),
-            ),
-        ),
-        (
-            "Mushroom",
-            *frontend_status(
-                options,
-                "mushroom",
-                Path(
-                    "/config/www/ui-components/"
-                    "mushroom/version"
-                ),
-                Path(
-                    "/config/www/ui-components/"
-                    "mushroom/mushroom.js"
-                ),
-            ),
-        ),
-        (
-            "Modern Circular Gauge",
-            *frontend_status(
-                options,
-                "modern_circular_gauge",
-                Path(
-                    "/config/www/ui-components/"
-                    "modern-circular-gauge/version"
-                ),
-                Path(
-                    "/config/www/ui-components/"
-                    "modern-circular-gauge/"
-                    "modern-circular-gauge.js"
-                ),
-            ),
-        ),
-        (
-            "SonoffLAN",
-            *integration_status(
-                options,
-                "sonofflan",
-                Path(
-                    "/config/custom_components/"
-                    "sonoff/manifest.json"
-                ),
-            ),
-        ),
-        (
-            "Spook",
-            *integration_status(
-                options,
-                "spook",
-                Path(
-                    "/config/custom_components/"
-                    "spook/manifest.json"
-                ),
-            ),
-        ),
-    ]
-
-    requires_review = any(
-        status == "NO INSTALADO"
-        for _, status, _ in components
+    status_counts = Counter(
+        result["status"]
+        for result in results
     )
 
-    overall_result = (
-        "REVISAR"
-        if requires_review
-        else "CORRECTO"
+    error_count = status_counts.get("ERROR", 0)
+    installed_count = status_counts.get(
+        "INSTALADO",
+        0,
     )
+    updated_count = status_counts.get(
+        "ACTUALIZADO",
+        0,
+    )
+
+    if not results:
+        overall_result = "REVISAR"
+    elif error_count > 0:
+        overall_result = "REVISAR"
+    elif installed_count > 0 or updated_count > 0:
+        overall_result = "CAMBIOS APLICADOS"
+    else:
+        overall_result = "CORRECTO"
 
     restart_text = (
         "REQUERIDO"
@@ -213,30 +147,88 @@ def main() -> int:
 
     now = datetime.now().astimezone()
     timestamp = now.strftime("%Y%m%d-%H%M%S")
-    formatted_date = now.strftime("%Y-%m-%d %H:%M:%S %z")
+    formatted_date = now.strftime(
+        "%Y-%m-%d %H:%M:%S %z"
+    )
 
     lines = [
         "SMART HOME UI MANAGER",
         "REPORTE DE MANTENIMIENTO",
-        "=" * 60,
+        "=" * 68,
         f"Fecha: {formatted_date}",
         f"Resultado general: {overall_result}",
-        f"Reinicio de Home Assistant Core: {restart_text}",
+        (
+            "Reinicio de Home Assistant Core: "
+            f"{restart_text}"
+        ),
+        "",
+        "RESUMEN",
+        "-" * 68,
+        (
+            "Verificados: "
+            f"{status_counts.get('VERIFICADO', 0)}"
+        ),
+        (
+            "Instalados: "
+            f"{status_counts.get('INSTALADO', 0)}"
+        ),
+        (
+            "Actualizados: "
+            f"{status_counts.get('ACTUALIZADO', 0)}"
+        ),
+        (
+            "Omitidos: "
+            f"{status_counts.get('OMITIDO', 0)}"
+        ),
+        (
+            "Errores: "
+            f"{status_counts.get('ERROR', 0)}"
+        ),
         "",
         "COMPONENTES",
-        "-" * 60,
+        "-" * 68,
     ]
 
-    for name, status, version in components:
-        lines.append(
-            f"{name}: {status} | Versión: {version}"
+    if not results:
+        lines.extend(
+            [
+                "ERROR: No se recibieron resultados "
+                "del proceso de mantenimiento.",
+                "",
+            ]
         )
+
+    for result in results:
+        lines.append(
+            f"{result['name']}: {result['status']}"
+        )
+
+        lines.append(
+            f"  Versión objetivo: "
+            f"{result['desired'] or '-'}"
+        )
+
+        lines.append(
+            f"  Versión anterior: "
+            f"{result['previous'] or '-'}"
+        )
+
+        lines.append(
+            f"  Versión final: "
+            f"{result['final'] or '-'}"
+        )
+
+        if result["message"]:
+            lines.append(
+                f"  Detalle: {result['message']}"
+            )
+
+        lines.append("")
 
     lines.extend(
         [
-            "",
             "CONFIGURACIÓN UTILIZADA",
-            "-" * 60,
+            "-" * 68,
             (
                 "Mini Graph Card: "
                 f"{'activado' if is_enabled(options, 'mini_graph_card') else 'desactivado'}"
@@ -288,7 +280,8 @@ def main() -> int:
 
     except OSError as error:
         print(
-            f"[report] ERROR: No se pudo guardar el reporte: {error}",
+            "[report] ERROR: No se pudo guardar "
+            f"el reporte: {error}",
             file=sys.stderr,
             flush=True,
         )
@@ -299,17 +292,20 @@ def main() -> int:
     )
 
     print(
-        f"[report] Reporte guardado: {timestamped_report}",
+        f"[report] Reporte guardado: "
+        f"{timestamped_report}",
         flush=True,
     )
 
     print(
-        f"[report] Último reporte: {latest_report}",
+        f"[report] Último reporte: "
+        f"{latest_report}",
         flush=True,
     )
 
     print(
-        f"[report] Resultado general: {overall_result}",
+        f"[report] Resultado general: "
+        f"{overall_result}",
         flush=True,
     )
 
