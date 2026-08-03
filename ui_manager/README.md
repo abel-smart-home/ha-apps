@@ -15,9 +15,19 @@ Permite instalar, actualizar, verificar y reparar tarjetas de interfaz e integra
 - Inventario local de huellas SHA-256.
 - Reportes históricos de mantenimiento y diagnóstico.
 - Imagen precompilada multi-arquitectura para `amd64` y `aarch64`.
+- Trazabilidad de versión, arquitectura, commit, fecha e imagen ejecutada.
+- Verificación pública posterior a cada publicación en GHCR.
 
 La aplicación funciona bajo ejecución manual, realiza la tarea seleccionada y se detiene.
 
-Desde la versión 0.7.0, GitHub Actions construye y publica la imagen en GitHub Container Registry. Las instalaciones de Home Assistant descargan la imagen terminada y ya no compilan la aplicación localmente.
+## Distribución
 
-Consulta `DOCS.md` para conocer la configuración y los procedimientos de mantenimiento.
+La imagen multi-arquitectura se publica en:
+
+```text
+ghcr.io/abel-smart-home/smart-home-ui-manager
+```
+
+GitHub Actions construye las imágenes `amd64` y `aarch64`, publica el manifiesto genérico y comprueba que las tres referencias sean públicas y contengan los metadatos esperados.
+
+Consulta `DOCS.md` para conocer la configuración, publicación, instalación limpia y procedimientos de mantenimiento.
