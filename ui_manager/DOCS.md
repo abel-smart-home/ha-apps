@@ -1,5 +1,11 @@
 # Documentación de Smart Home UI Manager
 
+## Estado estable
+
+La versión `1.0.0` es la primera versión marcada como `stable`. Fue validada mediante actualización desde 0.7.0, instalación limpia, ejecución en `amd64` y `aarch64`, diagnóstico previo, mantenimiento normal y verificación pública de las imágenes en GHCR.
+
+Las futuras correcciones compatibles se publicarán como `1.0.1`, `1.0.2`, etc. Las funciones nuevas compatibles incrementarán la versión menor, por ejemplo `1.1.0`. Una versión ya publicada no debe sobrescribirse; cualquier corrección posterior requiere una etiqueta nueva.
+
 ## Uso previsto
 
 Smart Home UI Manager es una herramienta privada de mantenimiento. Está diseñada para ser operada por el administrador de las instalaciones, no por el cliente final.
