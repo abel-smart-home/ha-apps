@@ -12,6 +12,25 @@ La aplicación debe mantenerse con:
 
 Actualiza la aplicación mientras esté detenida y luego presiona **Iniciar** una sola vez.
 
+## Distribución precompilada
+
+Desde la versión 0.7.0, la aplicación utiliza la imagen multi-arquitectura:
+
+```text
+ghcr.io/abel-smart-home/smart-home-ui-manager
+```
+
+Antes de publicar una versión nueva:
+
+1. Actualiza los archivos de la aplicación y su número de versión.
+2. Ejecuta manualmente el workflow **Build Smart Home UI Manager** con `publish=false`.
+3. Confirma que las compilaciones `amd64` y `aarch64` terminen correctamente.
+4. Ejecuta nuevamente el workflow con `publish=true`.
+5. Confirma que el paquete multi-arquitectura quede publicado.
+6. Busca actualizaciones en una sola instalación de laboratorio.
+7. Actualiza y ejecuta el diagnóstico y mantenimiento normal.
+8. Solo después distribuye la versión durante mantenimientos de clientes.
+
 ## Modos exclusivos
 
 Solo uno de estos modos puede estar activado durante una ejecución:
@@ -26,18 +45,6 @@ Comprueba el entorno sin instalar, actualizar, reparar ni restaurar componentes.
 
 ```text
 /config/ui-manager/diagnostics/latest.txt
-```
-
-### Prueba controlada de diagnóstico
-
-```yaml
-controlled_preflight_test_enabled: true
-```
-
-Ejecuta pruebas aisladas con catálogos y carpetas temporales. No modifica componentes reales. El reporte queda en:
-
-```text
-/config/ui-manager/test/preflight/latest.txt
 ```
 
 ### Inventario local SHA-256
@@ -58,22 +65,6 @@ restore_backup: latest_good
 
 Restaura el respaldo bueno más reciente de una integración y crea un respaldo de seguridad antes de reemplazarla.
 
-### Prueba controlada de respaldos
-
-```yaml
-controlled_backup_test_enabled: true
-```
-
-Prueba `latest_good`, clasificación de respaldos y restauración dentro de una carpeta aislada.
-
-### Prueba controlada de compatibilidad
-
-```yaml
-controlled_compatibility_test_enabled: true
-```
-
-Valida comparaciones de versiones y confirma que un componente incompatible sea bloqueado antes de descargarse.
-
 ## Mantenimiento normal
 
 Todos los modos exclusivos deben estar desactivados. Activa únicamente los componentes utilizados por esa instalación y presiona **Iniciar**.
@@ -88,7 +79,7 @@ El reporte de mantenimiento queda en:
 
 ## Diagnóstico previo
 
-La versión 0.6.0 comprueba:
+La aplicación comprueba:
 
 - Validez de `components.json`.
 - Disponibilidad de Python y curl.
@@ -122,8 +113,10 @@ El rango permitido es de 50 a 5000 MB.
 4. Actualiza versión, URL, SHA-256 y compatibilidad en `components.json`.
 5. Incrementa la versión de la aplicación.
 6. Documenta el cambio en `CHANGELOG.md`.
-7. Actualiza manualmente la aplicación en el equipo del cliente.
-8. Ejecuta el diagnóstico y el mantenimiento.
+7. Prueba y publica la imagen desde GitHub Actions.
+8. Actualiza manualmente la aplicación en una instalación de laboratorio.
+9. Ejecuta el diagnóstico y el mantenimiento.
+10. Distribuye gradualmente durante los mantenimientos de clientes.
 
 ## Reportes y retención
 
