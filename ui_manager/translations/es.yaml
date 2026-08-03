@@ -2,9 +2,6 @@ configuration:
   diagnostic_only_enabled:
     name: Solo diagnóstico
     description: Comprueba el entorno y genera un reporte sin modificar componentes.
-  controlled_preflight_test_enabled:
-    name: Prueba controlada de diagnóstico
-    description: Ejecuta validaciones aisladas del diagnóstico previo.
   minimum_free_space_mb:
     name: Espacio libre mínimo
     description: Espacio mínimo requerido en /config antes del mantenimiento, en MB.
@@ -32,12 +29,6 @@ configuration:
   restore_backup:
     name: Respaldo seleccionado
     description: Usa latest_good o el nombre exacto de una carpeta de respaldo.
-  controlled_backup_test_enabled:
-    name: Prueba controlada de respaldos
-    description: Prueba respaldos y restauración en una carpeta aislada.
-  controlled_compatibility_test_enabled:
-    name: Prueba controlada de compatibilidad
-    description: Prueba el bloqueo de componentes incompatibles sin descargarlos.
   max_integration_backups:
     name: Máximo de respaldos
     description: Cantidad de respaldos conservados por integración.
