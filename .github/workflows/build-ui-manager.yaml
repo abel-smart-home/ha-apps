@@ -27,9 +27,11 @@ jobs:
   init:
     name: Validate and initialize
     runs-on: ubuntu-24.04
+
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
       version: ${{ steps.version.outputs.version }}
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
@@ -38,20 +40,78 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+
+          test -f ui_manager/config.yaml
+          test -f ui_manager/Dockerfile
+          test -f ui_manager/run.sh
+          test -f ui_manager/components.json
+
           bash -n ui_manager/run.sh
           python3 -m compileall -q ui_manager
           python3 -m json.tool ui_manager/components.json >/dev/null
+
+          echo "Archivos principales validados correctamente"
 
       - name: Read application version
         id: version
         shell: bash
         run: |
           set -euo pipefail
-          version="$(sed -n 's/^version:[[:space:]]*"\([^"]*\)"/\1/p' ui_manager/config.yaml)"
-          if [[ -z "${version}" ]]; then
-            echo "No se pudo leer la versión de ui_manager/config.yaml" >&2
-            exit 1
-          fi
+
+          version="$(
+            python3 - <<'PY'
+          from pathlib import Path
+          import re
+          import sys
+
+          config_path = Path("ui_manager/config.yaml")
+
+          try:
+              content = config_path.read_text(
+                  encoding="utf-8-sig"
+              )
+          except OSError as error:
+              print(
+                  f"No se pudo abrir {config_path}: {error}",
+                  file=sys.stderr,
+              )
+              raise SystemExit(1)
+
+          match = re.search(
+              r"""(?mx)
+              ^[ \t]*version[ \t]*:
+              [ \t]*
+              ["']?
+              ([0-9A-Za-z.+_-]+)
+              ["']?
+              [ \t]*
+              (?:\#.*)?
+              $
+              """,
+              content,
+          )
+
+          if match is None:
+              print(
+                  "No se encontró una línea version válida "
+                  "en ui_manager/config.yaml",
+                  file=sys.stderr,
+              )
+              raise SystemExit(1)
+
+          version = match.group(1).strip()
+
+          if not version:
+              print(
+                  "La versión encontrada está vacía",
+                  file=sys.stderr,
+              )
+              raise SystemExit(1)
+
+          print(version)
+          PY
+          )"
+
           echo "version=${version}" >> "${GITHUB_OUTPUT}"
           echo "Versión detectada: ${version}"
 
@@ -66,13 +126,16 @@ jobs:
     name: Build ${{ matrix.arch }}
     needs: init
     runs-on: ${{ matrix.os }}
+
     permissions:
       contents: read
       id-token: write
       packages: write
+
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.init.outputs.matrix) }}
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
@@ -93,13 +156,18 @@ jobs:
   manifest:
     name: Publish multi-architecture manifest
     if: ${{ inputs.publish == 'true' }}
+
     needs:
       - init
       - build
+
     runs-on: ubuntu-24.04
+
     permissions:
+      contents: read
       id-token: write
       packages: write
+
     steps:
       - name: Publish manifest
         uses: home-assistant/builder/actions/publish-multi-arch-manifest@2026.06.0
