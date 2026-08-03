@@ -11,6 +11,14 @@ on:
         options:
           - "false"
           - "true"
+      allow_overwrite:
+        description: Permitir reemplazar una versión ya publicada (solo recuperación)
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
 
 permissions:
   contents: read
@@ -30,7 +38,12 @@ jobs:
 
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
-      version: ${{ steps.version.outputs.version }}
+      version: ${{ steps.metadata.outputs.version }}
+      revision: ${{ steps.metadata.outputs.revision }}
+      short_revision: ${{ steps.metadata.outputs.short_revision }}
+      build_date: ${{ steps.metadata.outputs.build_date }}
+      source: ${{ steps.metadata.outputs.source }}
+      image_ref: ${{ steps.metadata.outputs.image_ref }}
 
     steps:
       - name: Check out repository
@@ -41,79 +54,122 @@ jobs:
         run: |
           set -euo pipefail
 
-          test -f ui_manager/config.yaml
-          test -f ui_manager/Dockerfile
-          test -f ui_manager/run.sh
-          test -f ui_manager/components.json
+          required_files=(
+            ui_manager/config.yaml
+            ui_manager/Dockerfile
+            ui_manager/run.sh
+            ui_manager/components.json
+            ui_manager/CHANGELOG.md
+            ui_manager/build_metadata.py
+            .github/scripts/verify-public-images.py
+          )
+
+          for path in "${required_files[@]}"; do
+            if [[ ! -f "${path}" ]]; then
+              echo "Falta el archivo requerido: ${path}" >&2
+              exit 1
+            fi
+          done
 
           bash -n ui_manager/run.sh
-          python3 -m compileall -q ui_manager
+          python3 -m compileall -q ui_manager .github/scripts
           python3 -m json.tool ui_manager/components.json >/dev/null
+
+          for retired_test in \
+            ui_manager/backup_test.py \
+            ui_manager/compatibility_test.py \
+            ui_manager/preflight_test.py; do
+            if [[ -e "${retired_test}" ]]; then
+              echo "Debe eliminarse el archivo retirado: ${retired_test}" >&2
+              exit 1
+            fi
+          done
 
           echo "Archivos principales validados correctamente"
 
-      - name: Read application version
-        id: version
+      - name: Read and validate release metadata
+        id: metadata
         shell: bash
+        env:
+          EXPECTED_IMAGE: ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
         run: |
           set -euo pipefail
 
-          version="$(
-            python3 - <<'PY'
+          python3 - <<'PY' >> "${GITHUB_OUTPUT}"
           from pathlib import Path
+          import os
           import re
           import sys
+          from datetime import datetime, timezone
 
           config_path = Path("ui_manager/config.yaml")
+          changelog_path = Path("ui_manager/CHANGELOG.md")
+          content = config_path.read_text(encoding="utf-8-sig")
+          changelog = changelog_path.read_text(encoding="utf-8-sig")
 
-          try:
-              content = config_path.read_text(
-                  encoding="utf-8-sig"
+          def value(name: str) -> str:
+              match = re.search(
+                  rf"(?m)^[ \t]*{re.escape(name)}[ \t]*:[ \t]*[\"']?([^\"'#\s]+)[\"']?[ \t]*(?:#.*)?$",
+                  content,
               )
-          except OSError as error:
+              if match is None:
+                  print(
+                      f"No se encontró una línea válida para {name} en {config_path}",
+                      file=sys.stderr,
+                  )
+                  raise SystemExit(1)
+              return match.group(1).strip()
+
+          version = value("version")
+          image = value("image")
+          stage = value("stage")
+
+          if re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?", version) is None:
+              print(f"Versión inválida: {version}", file=sys.stderr)
+              raise SystemExit(1)
+
+          expected_image = os.environ["EXPECTED_IMAGE"]
+          if image != expected_image:
               print(
-                  f"No se pudo abrir {config_path}: {error}",
+                  f"La imagen de config.yaml debe ser {expected_image}; se encontró {image}",
                   file=sys.stderr,
               )
               raise SystemExit(1)
 
-          match = re.search(
-              r"""(?mx)
-              ^[ \t]*version[ \t]*:
-              [ \t]*
-              ["']?
-              ([0-9A-Za-z.+_-]+)
-              ["']?
-              [ \t]*
-              (?:\#.*)?
-              $
-              """,
-              content,
-          )
+          if stage not in {"experimental", "stable"}:
+              print(f"Stage no permitido: {stage}", file=sys.stderr)
+              raise SystemExit(1)
 
-          if match is None:
+          if f"## {version}" not in changelog:
               print(
-                  "No se encontró una línea version válida "
-                  "en ui_manager/config.yaml",
+                  f"CHANGELOG.md no contiene la sección ## {version}",
                   file=sys.stderr,
               )
               raise SystemExit(1)
 
-          version = match.group(1).strip()
+          revision = os.environ["GITHUB_SHA"]
+          build_date = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+          source = f"https://github.com/{os.environ['GITHUB_REPOSITORY']}"
 
-          if not version:
-              print(
-                  "La versión encontrada está vacía",
-                  file=sys.stderr,
-              )
-              raise SystemExit(1)
-
-          print(version)
+          print(f"version={version}")
+          print(f"revision={revision}")
+          print(f"short_revision={revision[:12]}")
+          print(f"build_date={build_date}")
+          print(f"source={source}")
+          print(f"image_ref={image}:{version}")
           PY
-          )"
 
-          echo "version=${version}" >> "${GITHUB_OUTPUT}"
-          echo "Versión detectada: ${version}"
+          echo "Metadatos de publicación validados"
+
+      - name: Prevent accidental version overwrite
+        if: ${{ inputs.publish == 'true' && inputs.allow_overwrite != 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/verify-public-images.py check-absent \
+            --owner "${{ github.repository_owner }}" \
+            --image "${IMAGE_NAME}" \
+            --version "${{ steps.metadata.outputs.version }}"
 
       - name: Prepare multi-architecture matrix
         id: matrix
@@ -141,6 +197,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Build application image
+        id: build_image
         uses: home-assistant/builder/actions/build-image@2026.06.0
         with:
           arch: ${{ matrix.arch }}
@@ -152,6 +209,22 @@ jobs:
             latest
           push: ${{ inputs.publish }}
           version: ${{ needs.init.outputs.version }}
+          build-args: |
+            BUILD_REVISION=${{ needs.init.outputs.revision }}
+            BUILD_DATE=${{ needs.init.outputs.build_date }}
+            BUILD_SOURCE=${{ needs.init.outputs.source }}
+            BUILD_IMAGE=${{ needs.init.outputs.image_ref }}
+          labels: |
+            io.hass.name=Smart Home UI Manager
+            io.hass.description=Instala, valida, diagnostica, genera inventarios y restaura componentes personalizados para Home Assistant
+            io.hass.type=app
+            io.hass.url=${{ needs.init.outputs.source }}
+            org.opencontainers.image.title=Smart Home UI Manager
+            org.opencontainers.image.description=Mantenimiento controlado de tarjetas e integraciones personalizadas para Home Assistant
+            org.opencontainers.image.source=${{ needs.init.outputs.source }}
+            org.opencontainers.image.url=${{ needs.init.outputs.source }}
+            org.opencontainers.image.version=${{ needs.init.outputs.version }}
+            org.opencontainers.image.revision=${{ needs.init.outputs.revision }}
 
   manifest:
     name: Publish multi-architecture manifest
@@ -178,3 +251,75 @@ jobs:
           image-tags: |
             ${{ needs.init.outputs.version }}
             latest
+
+  verify:
+    name: Verify public publication
+    if: ${{ inputs.publish == 'true' }}
+
+    needs:
+      - init
+      - manifest
+
+    runs-on: ubuntu-24.04
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Verify public images and metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/verify-public-images.py verify \
+            --owner "${{ github.repository_owner }}" \
+            --image "${IMAGE_NAME}" \
+            --version "${{ needs.init.outputs.version }}" \
+            --revision "${{ needs.init.outputs.revision }}" \
+            --source "${{ needs.init.outputs.source }}" \
+            --retries 12 \
+            --delay 10 \
+            --output /tmp/publication-verification.json
+
+      - name: Write publication summary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          data = json.loads(
+              Path("/tmp/publication-verification.json").read_text(encoding="utf-8")
+          )
+          generic = data["generic"]
+          architectures = data["architectures"]
+
+          lines = [
+              f"# Smart Home UI Manager {data['version']}",
+              "",
+              "## Publicación verificada",
+              "",
+              "| Validación | Resultado |",
+              "|---|---|",
+              "| Imagen amd64 pública | Correcto |",
+              "| Imagen aarch64 pública | Correcto |",
+              "| Manifiesto multi-arquitectura público | Correcto |",
+              "| Etiqueta latest alineada | Correcto |",
+              "| Metadatos OCI y de ejecución | Correcto |",
+              "",
+              f"- Commit: `{data['revision']}`",
+              f"- Manifiesto: `{generic['version_digest']}`",
+              f"- Plataformas: `{', '.join(generic['platforms'])}`",
+              f"- amd64: `{architectures['amd64']['version_digest']}`",
+              f"- aarch64: `{architectures['aarch64']['version_digest']}`",
+              f"- Intentos de verificación: `{data['attempt']}`",
+          ]
+
+          summary = Path(os.environ["GITHUB_STEP_SUMMARY"])
+          with summary.open("a", encoding="utf-8") as file:
+              file.write("\n".join(lines) + "\n")
+          PY
