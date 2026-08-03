@@ -1,0 +1,58 @@
+configuration:
+  diagnostic_only_enabled:
+    name: Solo diagnóstico
+    description: Comprueba el entorno y genera un reporte sin modificar componentes.
+  controlled_preflight_test_enabled:
+    name: Prueba controlada de diagnóstico
+    description: Ejecuta validaciones aisladas del diagnóstico previo.
+  minimum_free_space_mb:
+    name: Espacio libre mínimo
+    description: Espacio mínimo requerido en /config antes del mantenimiento, en MB.
+  local_inventory_enabled:
+    name: Inventario local SHA-256
+    description: Calcula la huella de un componente ya instalado sin modificarlo.
+  local_inventory_type:
+    name: Tipo de inventario
+    description: Usa frontend para un archivo JavaScript o integration para una carpeta.
+  local_inventory_name:
+    name: Nombre del componente
+    description: Nombre que aparecerá en el reporte de inventario.
+  local_inventory_version:
+    name: Versión indicada
+    description: Versión que estás evaluando en el laboratorio.
+  local_inventory_path:
+    name: Ruta local
+    description: Ruta dentro de /config al archivo o carpeta que se inventariará.
+  restore_backup_enabled:
+    name: Restaurar respaldo
+    description: Activa el modo exclusivo de restauración manual.
+  restore_component:
+    name: Componente a restaurar
+    description: ID del catálogo, por ejemplo sonofflan o spook.
+  restore_backup:
+    name: Respaldo seleccionado
+    description: Usa latest_good o el nombre exacto de una carpeta de respaldo.
+  controlled_backup_test_enabled:
+    name: Prueba controlada de respaldos
+    description: Prueba respaldos y restauración en una carpeta aislada.
+  controlled_compatibility_test_enabled:
+    name: Prueba controlada de compatibilidad
+    description: Prueba el bloqueo de componentes incompatibles sin descargarlos.
+  max_integration_backups:
+    name: Máximo de respaldos
+    description: Cantidad de respaldos conservados por integración.
+  mini_graph_card:
+    name: Administrar Mini Graph Card
+    description: Instala, verifica y actualiza Mini Graph Card.
+  mushroom:
+    name: Administrar Mushroom
+    description: Instala, verifica y actualiza Mushroom.
+  modern_circular_gauge:
+    name: Administrar Modern Circular Gauge
+    description: Instala, verifica y actualiza Modern Circular Gauge.
+  sonofflan:
+    name: Administrar SonoffLAN
+    description: Instala, verifica, respalda y actualiza SonoffLAN.
+  spook:
+    name: Administrar Spook
+    description: Instala, verifica, respalda y actualiza Spook.
