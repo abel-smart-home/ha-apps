@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.5.0
+
+- Agregada comprobación de compatibilidad mínima con Home Assistant Core.
+- La versión actual se obtiene mediante el proxy interno oficial de Home Assistant.
+- Agregado el campo opcional `min_home_assistant` al catálogo `components.json`.
+- Los componentes incompatibles se omiten antes de descargar o modificar archivos.
+- Agregado el estado `INCOMPATIBLE` al reporte de mantenimiento.
+- El reporte muestra la versión actual de Home Assistant, el mínimo requerido y el resultado de compatibilidad.
+- SonoffLAN 3.12.2 requiere Home Assistant 2023.2.0 o posterior.
+- Spook 5.0.0 requiere Home Assistant 2026.3.0 o posterior.
+- Si no es posible consultar Home Assistant, los componentes con requisito mínimo no se modifican.
+- Agregada una prueba controlada de solo lectura con un catálogo ficticio incompatible.
+- La prueba confirma que el componente incompatible no se descarga ni se instala.
+
 ## 0.4.1
 
 - Agregada la selección segura `latest_good` para restauraciones.
