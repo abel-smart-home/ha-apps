@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.8.0
+
+- Agregada trazabilidad de versión, arquitectura, commit, fecha, repositorio e imagen ejecutada.
+- Agregados metadatos OCI y variables internas de compilación a las imágenes.
+- El diagnóstico previo valida que la trazabilidad de la imagen esté completa.
+- Los reportes de diagnóstico y mantenimiento muestran la información de compilación.
+- El workflow valida versión, imagen y entrada correspondiente en CHANGELOG.md.
+- Agregada protección contra sobrescritura accidental de etiquetas ya publicadas.
+- Agregada verificación pública de imágenes amd64, aarch64 y manifiesto multi-arquitectura.
+- La verificación confirma plataformas, digests, etiquetas latest y metadatos OCI.
+- Agregado resumen de publicación en GitHub Actions.
+- Agregada documentación para publicar e instalar la aplicación en una instalación nueva de HAOS.
+
 ## 0.7.0
 
 - Retirados los modos y archivos de pruebas controladas ya validados.
