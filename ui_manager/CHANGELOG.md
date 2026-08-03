@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.6.0
+
+- Agregado diagnóstico previo antes del mantenimiento.
+- El mantenimiento se bloquea si existen fallos críticos de catálogo, permisos, espacio o servicios internos.
+- Agregado modo de solo diagnóstico sin modificación de componentes.
+- Agregada prueba controlada y aislada del diagnóstico.
+- Agregada retención de los últimos 20 reportes de diagnóstico.
+- Agregada documentación README.md y DOCS.md.
+- Agregadas traducciones en español e inglés para las opciones.
+- Agregados icono y logotipo para la presentación en Home Assistant.
+
 ## 0.5.0
 
 - Agregada comprobación de compatibilidad mínima con Home Assistant Core.
