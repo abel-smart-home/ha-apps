@@ -10,6 +10,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from build_metadata import get_build_metadata, metadata_lines
 from checksum_utils import calculate_file_sha256, calculate_tree_sha256
 from compatibility_utils import compatibility_status
 
@@ -238,9 +239,11 @@ def main() -> int:
     timestamp = now.strftime("%Y%m%d-%H%M%S")
     formatted_date = now.strftime("%Y-%m-%d %H:%M:%S %z")
 
+    build_metadata = get_build_metadata()
+
     lines = [
         "SMART HOME UI MANAGER",
-        "REPORTE DE MANTENIMIENTO",
+        f"REPORTE DE MANTENIMIENTO {build_metadata.version}",
         "=" * 68,
         f"Fecha: {formatted_date}",
         f"Catálogo: {catalog_version}",
@@ -250,6 +253,10 @@ def main() -> int:
         ),
         f"Resultado general: {overall_result}",
         f"Reinicio de Home Assistant Core: {restart_text}",
+        "",
+        "INFORMACIÓN DE COMPILACIÓN",
+        "-" * 68,
+        *metadata_lines(build_metadata),
         "",
         "RESUMEN",
         "-" * 68,
