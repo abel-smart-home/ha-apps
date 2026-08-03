@@ -5,7 +5,7 @@ ARG BUILD_VERSION
 
 LABEL \
     io.hass.name="Smart Home UI Manager" \
-    io.hass.description="Instala, verifica compatibilidad, genera inventarios y restaura componentes personalizados para Home Assistant" \
+    io.hass.description="Instala, valida, diagnostica, genera inventarios y restaura componentes personalizados para Home Assistant" \
     io.hass.arch="${BUILD_ARCH}" \
     io.hass.type="app" \
     io.hass.version="${BUILD_VERSION}"
@@ -26,6 +26,9 @@ COPY checksum_utils.py /checksum_utils.py
 COPY local_inventory.py /local_inventory.py
 COPY compatibility_utils.py /compatibility_utils.py
 COPY compatibility_test.py /compatibility_test.py
+COPY preflight_utils.py /preflight_utils.py
+COPY preflight.py /preflight.py
+COPY preflight_test.py /preflight_test.py
 COPY components.json /components.json
 
 RUN chmod a+x \
@@ -38,6 +41,9 @@ RUN chmod a+x \
     /checksum_utils.py \
     /local_inventory.py \
     /compatibility_utils.py \
-    /compatibility_test.py
+    /compatibility_test.py \
+    /preflight_utils.py \
+    /preflight.py \
+    /preflight_test.py
 
 CMD ["/run.sh"]
