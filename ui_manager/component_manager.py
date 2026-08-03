@@ -631,16 +631,30 @@ def install_integration(component: Component, results_file: Path) -> tuple[bool,
 
             backup_path: Path | None = None
             if had_existing_destination:
+                backup_reason = (
+                    "pre_repair"
+                    if previous_version == component.version
+                    and previous_checksum != component.sha256
+                    else "pre_update"
+                )
                 backup_path = create_integration_backup(
                     destination,
                     backup_root,
                     component_id=component.component_id,
                     component_name=component.name,
                     integration_id=component.integration_id,
-                    reason="pre_update",
+                    reason=backup_reason,
+                    expected_checksum=(
+                        component.sha256
+                        if backup_reason == "pre_repair"
+                        else ""
+                    ),
                     max_backups=configured_backup_limit(),
                 )
-                log("INFO", f"Respaldo creado: {backup_path}")
+                log(
+                    "INFO",
+                    f"Respaldo creado: {backup_path} ({backup_reason})",
+                )
                 destination.rename(previous_dir)
 
             try:
