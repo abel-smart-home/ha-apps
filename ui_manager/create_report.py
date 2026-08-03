@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from checksum_utils import calculate_file_sha256, calculate_tree_sha256
+from compatibility_utils import compatibility_status
 
 
 OPTIONS_FILE = Path(os.environ.get("UI_MANAGER_OPTIONS_FILE", "/data/options.json"))
@@ -129,7 +130,7 @@ def integrity_status(
     expected_checksum: str,
     installed_checksum: str,
 ) -> str:
-    if result_status == "OMITIDO":
+    if result_status in {"OMITIDO", "INCOMPATIBLE"}:
         return "NO COMPROBADA"
     if not expected_checksum:
         return "NO APLICA"
@@ -179,12 +180,24 @@ def main() -> int:
         else Path("/tmp/ui_manager_results.tsv")
     )
     catalog_file = Path(sys.argv[3]) if len(sys.argv) > 3 else DEFAULT_CATALOG
+    state_file = (
+        Path(sys.argv[4])
+        if len(sys.argv) > 4
+        else Path("/tmp/ui_manager_state.json")
+    )
 
     options = read_json(OPTIONS_FILE)
+    state = read_json(state_file)
     results = read_results(results_file)
     catalog_version, catalog = load_catalog(catalog_file)
 
     status_counts = Counter(result["status"] for result in results)
+    home_assistant_version = state.get("home_assistant_version", "")
+    if not isinstance(home_assistant_version, str):
+        home_assistant_version = ""
+    compatibility_error = state.get("compatibility_error", "")
+    if not isinstance(compatibility_error, str):
+        compatibility_error = ""
     integrity_data: dict[str, tuple[str, str, str, str]] = {}
     integrity_failures = 0
 
@@ -202,12 +215,18 @@ def main() -> int:
             integrity_failures += 1
 
     error_count = status_counts.get("ERROR", 0)
+    incompatible_count = status_counts.get("INCOMPATIBLE", 0)
     changed_count = sum(
         status_counts.get(status, 0)
         for status in ("INSTALADO", "ACTUALIZADO", "REPARADO")
     )
 
-    if not results or error_count > 0 or integrity_failures > 0:
+    if (
+        not results
+        or error_count > 0
+        or incompatible_count > 0
+        or integrity_failures > 0
+    ):
         overall_result = "REVISAR"
     elif changed_count > 0:
         overall_result = "CAMBIOS APLICADOS"
@@ -225,6 +244,10 @@ def main() -> int:
         "=" * 68,
         f"Fecha: {formatted_date}",
         f"Catálogo: {catalog_version}",
+        (
+            "Home Assistant Core: "
+            f"{home_assistant_version or 'no consultado'}"
+        ),
         f"Resultado general: {overall_result}",
         f"Reinicio de Home Assistant Core: {restart_text}",
         "",
@@ -235,6 +258,7 @@ def main() -> int:
         f"Actualizados: {status_counts.get('ACTUALIZADO', 0)}",
         f"Reparados: {status_counts.get('REPARADO', 0)}",
         f"Omitidos: {status_counts.get('OMITIDO', 0)}",
+        f"Incompatibles: {status_counts.get('INCOMPATIBLE', 0)}",
         f"Errores: {status_counts.get('ERROR', 0)}",
         f"Fallos de integridad actuales: {integrity_failures}",
         "",
@@ -260,6 +284,28 @@ def main() -> int:
         lines.append(f"  Versión objetivo: {result['desired'] or '-'}")
         lines.append(f"  Versión anterior: {result['previous'] or '-'}")
         lines.append(f"  Versión final: {result['final'] or '-'}")
+
+        component = catalog.get(result["id"], {})
+        minimum = component.get("min_home_assistant", "")
+        if not isinstance(minimum, str):
+            minimum = ""
+        component_compatibility = compatibility_status(
+            home_assistant_version,
+            minimum,
+        )
+        if result["status"] == "INCOMPATIBLE":
+            component_compatibility = "INCOMPATIBLE"
+        elif result["status"] == "ERROR" and minimum and not home_assistant_version:
+            component_compatibility = "NO VERIFICADA"
+
+        lines.append(
+            "  Home Assistant mínimo: "
+            f"{minimum or 'no definido'}"
+        )
+        lines.append(
+            "  Compatibilidad: "
+            f"{component_compatibility}"
+        )
         lines.append(f"  Tipo de huella: {checksum_type}")
         lines.append(f"  SHA-256 aprobada: {expected or 'no disponible'}")
         lines.append(f"  SHA-256 instalada: {installed or 'no disponible'}")
@@ -282,6 +328,21 @@ def main() -> int:
 
     lines.extend(
         [
+            "",
+            "COMPATIBILIDAD DE HOME ASSISTANT",
+            "-" * 68,
+            (
+                "Versión detectada: "
+                f"{home_assistant_version or 'no disponible'}"
+            ),
+            (
+                "Error de consulta: "
+                f"{compatibility_error or 'ninguno'}"
+            ),
+            (
+                "Los componentes incompatibles se omiten antes de descargar "
+                "o modificar archivos."
+            ),
             "",
             "INFORMACIÓN DEL CATÁLOGO",
             "-" * 68,
@@ -314,6 +375,10 @@ def main() -> int:
     print(f"[report] Catálogo utilizado: {catalog_version}", flush=True)
     print(f"[report] Resultado general: {overall_result}", flush=True)
     print("[report] Validación SHA-256 activa", flush=True)
+    print(
+        "[report] Compatibilidad de Home Assistant activa",
+        flush=True,
+    )
     print(
         f"[report] Reportes históricos conservados: {MAX_HISTORICAL_REPORTS}",
         flush=True,
