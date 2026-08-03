@@ -39,6 +39,7 @@ bashio::log.info \
 
 inventory_enabled="false"
 restore_enabled="false"
+backup_test_enabled="false"
 
 if bashio::config.true "local_inventory_enabled"; then
     inventory_enabled="true"
@@ -48,14 +49,21 @@ if bashio::config.true "restore_backup_enabled"; then
     restore_enabled="true"
 fi
 
-if [[ "${inventory_enabled}" == "true" ]] \
-    && [[ "${restore_enabled}" == "true" ]]; then
+if bashio::config.true "controlled_backup_test_enabled"; then
+    backup_test_enabled="true"
+fi
+
+active_modes=0
+[[ "${inventory_enabled}" == "true" ]] && active_modes=$((active_modes + 1))
+[[ "${restore_enabled}" == "true" ]] && active_modes=$((active_modes + 1))
+[[ "${backup_test_enabled}" == "true" ]] && active_modes=$((active_modes + 1))
+
+if (( active_modes > 1 )); then
+    bashio::log.error \
+        "Inventario local, restauración y prueba controlada son modos exclusivos"
 
     bashio::log.error \
-        "Inventario local y restauración no pueden ejecutarse al mismo tiempo"
-
-    bashio::log.error \
-        "Desactiva uno de los dos modos y vuelve a iniciar la aplicación"
+        "Deja activado solamente uno y vuelve a iniciar la aplicación"
 
     exit 1
 fi
@@ -85,6 +93,33 @@ if [[ "${inventory_enabled}" == "true" ]]; then
         "La aplicación se detendrá"
 
     exit 0
+fi
+
+
+if [[ "${backup_test_enabled}" == "true" ]]; then
+    bashio::log.warning \
+        "Prueba controlada de respaldos activada"
+
+    bashio::log.info \
+        "La prueba utilizará únicamente una carpeta aislada"
+
+    bashio::log.info \
+        "No se modificarán integraciones reales"
+
+    if python3 /backup_test.py; then
+        bashio::log.info \
+            "Prueba controlada finalizada correctamente"
+        bashio::log.info \
+            "Reporte: /config/ui-manager/test/backup-manager/latest.txt"
+        exit 0
+    fi
+
+    test_exit_code="$?"
+    bashio::log.error \
+        "La prueba controlada presentó errores"
+    bashio::log.error \
+        "Código de salida: ${test_exit_code}"
+    exit "${test_exit_code}"
 fi
 
 
@@ -212,6 +247,21 @@ if python3 /create_report.py \
 else
     bashio::log.warning \
         "No se pudo generar el reporte de mantenimiento"
+fi
+
+
+bashio::log.info \
+    "Actualizando inventario de respaldos"
+
+if python3 /backup_manager.py \
+    inventory \
+    "${CATALOG_FILE}"; then
+
+    bashio::log.info \
+        "Inventario de respaldos actualizado correctamente"
+else
+    bashio::log.warning \
+        "No se pudo actualizar el inventario de respaldos"
 fi
 
 
