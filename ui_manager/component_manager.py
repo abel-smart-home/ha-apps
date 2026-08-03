@@ -16,6 +16,12 @@ from pathlib import Path
 from typing import Any
 
 from checksum_utils import calculate_file_sha256, calculate_tree_sha256
+from compatibility_utils import (
+    CompatibilityError,
+    fetch_home_assistant_version,
+    is_version_at_least,
+    parse_version,
+)
 from backup_manager import (
     BackupError,
     configured_backup_limit,
@@ -56,6 +62,7 @@ class Component:
     resource_type: str = "module"
     integration_id: str = ""
     source_folder: str = ""
+    min_home_assistant: str = ""
 
 
 class CatalogError(ValueError):
@@ -138,8 +145,9 @@ def validate_config_path(path_text: str, field_name: str, component_id: str) -> 
 def load_catalog(path: Path) -> tuple[str, list[Component]]:
     data = read_json(path)
 
-    if data.get("schema_version") != 1:
-        raise CatalogError("schema_version debe ser 1")
+    schema_version = data.get("schema_version")
+    if schema_version not in {1, 2}:
+        raise CatalogError("schema_version debe ser 1 o 2")
 
     catalog_version = data.get("catalog_version")
     if not isinstance(catalog_version, str) or not catalog_version.strip():
@@ -187,6 +195,25 @@ def load_catalog(path: Path) -> tuple[str, list[Component]]:
         if not SHA256_PATTERN.fullmatch(sha256):
             raise CatalogError(f"SHA-256 no válido para {component_id}")
 
+        min_home_assistant_value = raw_item.get("min_home_assistant", "")
+        if min_home_assistant_value is None:
+            min_home_assistant = ""
+        elif isinstance(min_home_assistant_value, str):
+            min_home_assistant = min_home_assistant_value.strip()
+        else:
+            raise CatalogError(
+                f"min_home_assistant no válido para {component_id}"
+            )
+
+        if min_home_assistant:
+            try:
+                parse_version(min_home_assistant)
+            except CompatibilityError as error:
+                raise CatalogError(
+                    f"Versión mínima no válida para {component_id}: "
+                    f"{min_home_assistant}"
+                ) from error
+
         common = {
             "component_id": component_id,
             "name": name,
@@ -195,6 +222,7 @@ def load_catalog(path: Path) -> tuple[str, list[Component]]:
             "version": version,
             "url": url,
             "sha256": sha256,
+            "min_home_assistant": min_home_assistant,
         }
 
         if component_type == "frontend":
@@ -290,7 +318,7 @@ def download(url: str, destination: Path) -> bool:
         "--max-time",
         "300",
         "--user-agent",
-        "Smart-Home-UI-Manager/0.4.0",
+        "Smart-Home-UI-Manager/0.5.0",
         url,
         "--output",
         str(destination),
@@ -718,11 +746,32 @@ def install_integration(component: Component, results_file: Path) -> tuple[bool,
     return True, True
 
 
+
+def installed_component_version(component: Component) -> str:
+    if component.component_type == "frontend":
+        install_dir = map_config_path(component.install_dir)
+        component_file = install_dir / component.filename
+        version = read_version_file(install_dir / "version")
+        if version:
+            return version
+        return "desconocida" if component_file.is_file() else "-"
+
+    destination = CONFIG_ROOT / "custom_components" / component.integration_id
+    version = read_manifest_version(destination / "manifest.json")
+    if version:
+        return version
+    return "desconocida" if destination.is_dir() else "-"
+
+
 def write_state(
     state_file: Path,
     catalog_version: str,
     integration_changed: bool,
     errors: int,
+    *,
+    home_assistant_version: str = "",
+    incompatible: int = 0,
+    compatibility_error: str = "",
 ) -> None:
     state_file.parent.mkdir(parents=True, exist_ok=True)
     state_file.write_text(
@@ -731,6 +780,9 @@ def write_state(
                 "catalog_version": catalog_version,
                 "integration_changed": integration_changed,
                 "errors": errors,
+                "home_assistant_version": home_assistant_version,
+                "incompatible": incompatible,
+                "compatibility_error": compatibility_error,
             },
             ensure_ascii=False,
             indent=2,
@@ -766,6 +818,33 @@ def main() -> int:
     options = read_options()
     integration_changed = False
     errors = 0
+    incompatible = 0
+    home_assistant_version = ""
+    compatibility_error = ""
+
+    enabled_components = [
+        component
+        for component in components
+        if options.get(component.option, True) is True
+    ]
+    requires_compatibility_check = any(
+        component.min_home_assistant for component in enabled_components
+    )
+
+    if requires_compatibility_check:
+        try:
+            home_assistant_version = fetch_home_assistant_version()
+            log(
+                "INFO",
+                f"Home Assistant Core detectado: {home_assistant_version}",
+            )
+        except CompatibilityError as error:
+            compatibility_error = str(error)
+            log(
+                "ERROR",
+                "No se pudo comprobar la versión de Home Assistant Core: "
+                f"{compatibility_error}",
+            )
 
     log("INFO", f"Catálogo cargado: {catalog_version}")
     log("INFO", f"Componentes definidos: {len(components)}")
@@ -783,6 +862,59 @@ def main() -> int:
                 "Componente desactivado en la configuración",
             )
             continue
+
+        if component.min_home_assistant:
+            current_installed_version = installed_component_version(component)
+
+            if not home_assistant_version:
+                log(
+                    "ERROR",
+                    f"No se puede validar la compatibilidad de {component.name}",
+                )
+                record_result(
+                    results_file,
+                    component,
+                    current_installed_version,
+                    current_installed_version,
+                    "ERROR",
+                    "No se pudo consultar Home Assistant Core; "
+                    f"mínimo requerido: {component.min_home_assistant}",
+                )
+                errors += 1
+                continue
+
+            if not is_version_at_least(
+                home_assistant_version,
+                component.min_home_assistant,
+            ):
+                log(
+                    "WARNING",
+                    f"{component.name} requiere Home Assistant "
+                    f"{component.min_home_assistant} o posterior",
+                )
+                log(
+                    "WARNING",
+                    f"Versión actual: {home_assistant_version}; "
+                    "no se descargará ni modificará el componente",
+                )
+                record_result(
+                    results_file,
+                    component,
+                    current_installed_version,
+                    current_installed_version,
+                    "INCOMPATIBLE",
+                    f"Home Assistant actual: {home_assistant_version}; "
+                    f"mínimo requerido: {component.min_home_assistant}; "
+                    "componente omitido de forma segura",
+                )
+                incompatible += 1
+                continue
+
+            log(
+                "INFO",
+                f"Compatibilidad de {component.name} verificada "
+                f"(mínimo {component.min_home_assistant})",
+            )
 
         try:
             if component.component_type == "frontend":
@@ -812,12 +944,15 @@ def main() -> int:
             catalog_version,
             integration_changed,
             errors,
+            home_assistant_version=home_assistant_version,
+            incompatible=incompatible,
+            compatibility_error=compatibility_error,
         )
     except OSError as error:
         log("ERROR", f"No se pudo guardar el estado del mantenimiento: {error}")
         return 1
 
-    return 0 if errors == 0 else 2
+    return 0 if errors == 0 and incompatible == 0 else 2
 
 
 if __name__ == "__main__":
