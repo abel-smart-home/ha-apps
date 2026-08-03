@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.0
+
+- Retirados los modos y archivos de pruebas controladas ya validados.
+- Agregada distribución mediante imagen precompilada multi-arquitectura.
+- Agregado workflow manual para construir `amd64` y `aarch64`.
+- Agregada publicación en GitHub Container Registry.
+- Agregada firma Cosign para imágenes y manifiesto multi-arquitectura.
+- La instalación en Home Assistant ya no necesita compilar la imagen localmente.
+- Conservados los modos operativos de diagnóstico, inventario, restauración y mantenimiento.
+
 ## 0.6.0
 
 - Agregado diagnóstico previo antes del mantenimiento.
