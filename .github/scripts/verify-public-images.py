@@ -54,7 +54,7 @@ class RegistryClient:
         url = f"https://{self.registry}/token?{query}"
         request = urllib.request.Request(
             url,
-            headers={"User-Agent": "smart-home-ui-manager-verifier/0.8.0"},
+            headers={"User-Agent": "smart-home-ui-manager-verifier/1.0.0"},
         )
 
         try:
@@ -89,7 +89,7 @@ class RegistryClient:
             headers={
                 "Authorization": f"Bearer {token}",
                 "Accept": accept,
-                "User-Agent": "smart-home-ui-manager-verifier/0.8.0",
+                "User-Agent": "smart-home-ui-manager-verifier/1.0.0",
             },
         )
 
