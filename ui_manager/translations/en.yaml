@@ -2,9 +2,6 @@ configuration:
   diagnostic_only_enabled:
     name: Diagnostic only
     description: Checks the environment and creates a report without modifying components.
-  controlled_preflight_test_enabled:
-    name: Controlled diagnostic test
-    description: Runs isolated tests of the preflight diagnostic logic.
   minimum_free_space_mb:
     name: Minimum free space
     description: Minimum free space required in /config before maintenance, in MB.
@@ -32,12 +29,6 @@ configuration:
   restore_backup:
     name: Selected backup
     description: Use latest_good or the exact backup directory name.
-  controlled_backup_test_enabled:
-    name: Controlled backup test
-    description: Tests backup and restore logic in an isolated directory.
-  controlled_compatibility_test_enabled:
-    name: Controlled compatibility test
-    description: Tests blocking incompatible components before download.
   max_integration_backups:
     name: Maximum backups
     description: Number of backups retained per integration.
