@@ -13,6 +13,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Iterable
 
+from build_metadata import get_build_metadata, metadata_lines
 from compatibility_utils import CompatibilityError, fetch_home_assistant_version
 from component_manager import CatalogError, Component, load_catalog
 
@@ -199,9 +200,11 @@ def write_report(
     timestamp = now.strftime("%Y%m%d-%H%M%S")
     formatted_date = now.strftime("%Y-%m-%d %H:%M:%S %z")
 
+    build_metadata = get_build_metadata()
+
     lines = [
         "SMART HOME UI MANAGER",
-        "DIAGNÓSTICO PREVIO 0.6.0",
+        f"DIAGNÓSTICO PREVIO {build_metadata.version}",
         "=" * 76,
         f"Fecha: {formatted_date}",
         f"Modo: {mode}",
@@ -209,6 +212,10 @@ def write_report(
         f"Home Assistant Core: {home_assistant_version or 'no detectado'}",
         f"Espacio mínimo configurado: {minimum_free_space_mb} MB",
         "Componentes reales modificados: NO",
+        "",
+        "INFORMACIÓN DE COMPILACIÓN",
+        "-" * 76,
+        *metadata_lines(build_metadata),
         "",
         "VALIDACIONES",
         "-" * 76,
@@ -269,6 +276,21 @@ def run_preflight(
     minimum_space = configured_minimum_free_space(options)
     checks: list[CheckResult] = []
     components: list[Component] = []
+
+    build_metadata = get_build_metadata()
+    checks.append(
+        CheckResult(
+            "build_metadata",
+            "Trazabilidad de la imagen",
+            "PASS" if build_metadata.complete else "WARN",
+            False,
+            (
+                "Versión, arquitectura, commit, fecha e imagen disponibles"
+                if build_metadata.complete
+                else "Uno o más metadatos de compilación no están disponibles"
+            ),
+        )
+    )
 
     try:
         catalog_version, components = load_catalog(catalog_path)
