@@ -2,336 +2,56 @@ name: Smart Home UI Manager
 description: Instala, valida, diagnostica, genera inventarios y restaura componentes personalizados para Home Assistant
 version: "0.7.0"
 slug: ui_manager
-
-#!/usr/bin/with-contenv bashio
-
-set -uo pipefail
-
-CATALOG_FILE="/components.json"
-RESULTS_FILE="/tmp/ui_manager_results.tsv"
-STATE_FILE="/tmp/ui_manager_state.json"
-
-
-read_state_value() {
-    local key="$1"
-    local default_value="$2"
-
-    python3 - "${STATE_FILE}" "${key}" "${default_value}" <<'PY'
-import json
-import sys
-
-path, key, default = sys.argv[1:4]
-
-try:
-    with open(path, "r", encoding="utf-8") as file:
-        data = json.load(file)
-except Exception:
-    print(default)
-    raise SystemExit(0)
-
-value = data.get(key, default)
-
-if isinstance(value, bool):
-    print("true" if value else "false")
-else:
-    print(value)
-PY
-}
-
-
-bashio::log.info \
-    "Smart Home UI Manager iniciado correctamente"
-
-inventory_enabled="false"
-restore_enabled="false"
-diagnostic_only_enabled="false"
-
-if bashio::config.true "local_inventory_enabled"; then
-    inventory_enabled="true"
-fi
-
-if bashio::config.true "restore_backup_enabled"; then
-    restore_enabled="true"
-fi
-
-if bashio::config.true "diagnostic_only_enabled"; then
-    diagnostic_only_enabled="true"
-fi
-
-active_modes=0
-[[ "${inventory_enabled}" == "true" ]] && active_modes=$((active_modes + 1))
-[[ "${restore_enabled}" == "true" ]] && active_modes=$((active_modes + 1))
-[[ "${diagnostic_only_enabled}" == "true" ]] && active_modes=$((active_modes + 1))
-
-if (( active_modes > 1 )); then
-    bashio::log.error \
-        "Diagnóstico, inventario y restauración son modos exclusivos"
-
-    bashio::log.error \
-        "Deja activado solamente uno y vuelve a iniciar la aplicación"
-
-    exit 1
-fi
-
-
-if [[ "${diagnostic_only_enabled}" == "true" ]]; then
-    bashio::log.warning \
-        "Modo de solo diagnóstico activado"
-
-    bashio::log.info \
-        "No se instalarán, actualizarán, repararán ni restaurarán componentes"
-
-    if python3 /preflight.py \
-        "${CATALOG_FILE}" \
-        --mode "SOLO DIAGNÓSTICO"; then
-
-        bashio::log.info \
-            "Diagnóstico finalizado correctamente"
-        bashio::log.info \
-            "Reporte: /config/ui-manager/diagnostics/latest.txt"
-        exit 0
-    fi
-
-    diagnostic_exit_code="$?"
-    bashio::log.warning \
-        "El diagnóstico encontró bloqueos para el mantenimiento"
-    bashio::log.warning \
-        "Código de salida: ${diagnostic_exit_code}"
-    bashio::log.info \
-        "Reporte: /config/ui-manager/diagnostics/latest.txt"
-    exit 0
-fi
-
-
-if [[ "${inventory_enabled}" == "true" ]]; then
-    bashio::log.warning \
-        "Modo de inventario local SHA-256 activado"
-
-    bashio::log.info \
-        "No se instalarán, actualizarán, repararán ni restaurarán componentes"
-
-    if python3 /local_inventory.py; then
-        bashio::log.info \
-            "Inventario local finalizado correctamente"
-    else
-        inventory_exit_code="$?"
-
-        bashio::log.warning \
-            "El inventario local terminó con observaciones o errores"
-
-        bashio::log.warning \
-            "Código de salida: ${inventory_exit_code}"
-    fi
-
-    bashio::log.info \
-        "La aplicación se detendrá"
-
-    exit 0
-fi
-
-
-bashio::log.info \
-    "Ejecutando diagnóstico previo"
-
-if ! python3 /preflight.py \
-    "${CATALOG_FILE}" \
-    --mode "MANTENIMIENTO"; then
-
-    bashio::log.error \
-        "El diagnóstico previo detectó uno o más fallos críticos"
-
-    bashio::log.error \
-        "No se modificará ningún componente"
-
-    bashio::log.info \
-        "Reporte: /config/ui-manager/diagnostics/latest.txt"
-
-    exit 1
-fi
-
-bashio::log.info \
-    "Diagnóstico previo aprobado"
-
-
-bashio::log.info \
-    "Validando catálogo de componentes"
-
-if ! python3 /component_manager.py \
-    --validate-only \
-    "${CATALOG_FILE}"; then
-
-    bashio::log.error \
-        "El catálogo components.json no es válido"
-
-    bashio::log.error \
-        "No se ejecutará ninguna operación"
-
-    exit 1
-fi
-
-
-if [[ "${restore_enabled}" == "true" ]]; then
-    bashio::log.warning \
-        "Modo de restauración manual activado"
-
-    bashio::log.info \
-        "No se ejecutará el mantenimiento normal"
-
-    if python3 /backup_manager.py \
-        restore \
-        "${CATALOG_FILE}"; then
-
-        bashio::log.info \
-            "Restauración finalizada correctamente"
-
-        bashio::log.warning \
-            "Reinicia Home Assistant Core antes de comprobar la integración"
-
-        bashio::log.info \
-            "La aplicación se detendrá"
-
-        exit 0
-    fi
-
-    restore_exit_code="$?"
-
-    bashio::log.error \
-        "No se pudo completar la restauración"
-
-    bashio::log.error \
-        "Código de salida: ${restore_exit_code}"
-
-    bashio::log.info \
-        "La aplicación se detendrá"
-
-    exit "${restore_exit_code}"
-fi
-
-
-bashio::log.info \
-    "Ejecutando mantenimiento desde components.json"
-
-manager_exit_code=0
-
-python3 /component_manager.py \
-    "${CATALOG_FILE}" \
-    "${RESULTS_FILE}" \
-    "${STATE_FILE}" \
-    || manager_exit_code="$?"
-
-integration_changed="$(
-    read_state_value \
-        "integration_changed" \
-        "false"
-)"
-
-error_count="$(
-    read_state_value \
-        "errors" \
-        "1"
-)"
-
-catalog_version="$(
-    read_state_value \
-        "catalog_version" \
-        "desconocido"
-)"
-
-home_assistant_version="$(
-    read_state_value \
-        "home_assistant_version" \
-        ""
-)"
-
-incompatible_count="$(
-    read_state_value \
-        "incompatible" \
-        "0"
-)"
-
-compatibility_error="$(
-    read_state_value \
-        "compatibility_error" \
-        ""
-)"
-
-bashio::log.info \
-    "Catálogo procesado: ${catalog_version}"
-
-if [[ -n "${home_assistant_version}" ]]; then
-    bashio::log.info \
-        "Home Assistant Core detectado: ${home_assistant_version}"
-elif [[ -n "${compatibility_error}" ]]; then
-    bashio::log.warning \
-        "No se pudo consultar Home Assistant Core: ${compatibility_error}"
-fi
-
-if [[ "${incompatible_count}" != "0" ]]; then
-    bashio::log.warning \
-        "Componentes incompatibles omitidos: ${incompatible_count}"
-fi
-
-
-if [[ "${integration_changed}" == "true" ]]; then
-    bashio::log.warning \
-        "Se instaló, actualizó o reparó una integración personalizada"
-
-    bashio::log.warning \
-        "Es necesario reiniciar Home Assistant Core"
-else
-    bashio::log.info \
-        "No es necesario reiniciar Home Assistant Core"
-fi
-
-
-if [[ "${error_count}" != "0" ]]; then
-    bashio::log.warning \
-        "Uno o más componentes presentaron errores"
-
-    bashio::log.warning \
-        "Revisa el reporte de mantenimiento"
-elif [[ "${manager_exit_code}" != "0" ]] \
-    && [[ "${incompatible_count}" == "0" ]]; then
-
-    bashio::log.warning \
-        "El administrador terminó con un código inesperado: ${manager_exit_code}"
-fi
-
-
-bashio::log.info \
-    "Generando reporte de mantenimiento"
-
-if python3 /create_report.py \
-    "${integration_changed}" \
-    "${RESULTS_FILE}" \
-    "${CATALOG_FILE}" \
-    "${STATE_FILE}"; then
-
-    bashio::log.info \
-        "Reporte de mantenimiento generado correctamente"
-else
-    bashio::log.warning \
-        "No se pudo generar el reporte de mantenimiento"
-fi
-
-
-bashio::log.info \
-    "Actualizando inventario de respaldos"
-
-if python3 /backup_manager.py \
-    inventory \
-    "${CATALOG_FILE}"; then
-
-    bashio::log.info \
-        "Inventario de respaldos actualizado correctamente"
-else
-    bashio::log.warning \
-        "No se pudo actualizar el inventario de respaldos"
-fi
-
-
-bashio::log.info \
-    "Comprobación de componentes finalizada"
-
-bashio::log.info \
-    "Mantenimiento finalizado. La aplicación se detendrá."
+url: https://github.com/abel-smart-home/ha-apps
+image: ghcr.io/abel-smart-home/smart-home-ui-manager
+init: false
+
+arch:
+  - aarch64
+  - amd64
+
+startup: once
+boot: manual_only
+stage: experimental
+homeassistant_api: true
+
+map:
+  - type: homeassistant_config
+    read_only: false
+    path: /config
+
+options:
+  diagnostic_only_enabled: false
+  minimum_free_space_mb: 200
+  local_inventory_enabled: false
+  local_inventory_type: frontend
+  local_inventory_name: ""
+  local_inventory_version: ""
+  local_inventory_path: ""
+  restore_backup_enabled: false
+  restore_component: ""
+  restore_backup: latest_good
+  max_integration_backups: 5
+  mini_graph_card: true
+  mushroom: true
+  modern_circular_gauge: true
+  sonofflan: true
+  spook: true
+
+schema:
+  diagnostic_only_enabled: bool
+  minimum_free_space_mb: int(50,5000)
+  local_inventory_enabled: bool
+  local_inventory_type: str
+  local_inventory_name: str
+  local_inventory_version: str
+  local_inventory_path: str
+  restore_backup_enabled: bool
+  restore_component: str
+  restore_backup: str
+  max_integration_backups: int(1,20)
+  mini_graph_card: bool
+  mushroom: bool
+  modern_circular_gauge: bool
+  sonofflan: bool
+  spook: bool
