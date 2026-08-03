@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.0
+
+- Primera versión estable de Smart Home UI Manager.
+- Promovida de `experimental` a `stable` después de validar actualización desde 0.7.0, instalación limpia, diagnóstico y mantenimiento normal.
+- Validada en Home Assistant OS sobre arquitecturas `amd64` y `aarch64`.
+- Validadas la compilación, publicación y verificación pública de las imágenes multi-arquitectura en GHCR.
+- Confirmados cinco componentes administrados sin errores ni fallos de integridad.
+- Conservada sin cambios funcionales la lógica aprobada en 0.8.0.
+- Establecida como línea base para futuras versiones 1.x mediante versionado semántico.
+
 ## 0.8.0
 
 - Agregada trazabilidad de versión, arquitectura, commit, fecha, repositorio e imagen ejecutada.
