@@ -1,7 +1,8 @@
 name: Smart Home UI Manager
-description: Instala, verifica compatibilidad, genera inventarios y restaura componentes personalizados para Home Assistant
-version: "0.5.0"
+description: Instala, valida, diagnostica, genera inventarios y restaura componentes personalizados para Home Assistant
+version: "0.6.0"
 slug: ui_manager
+url: https://github.com/abel-smart-home/ha-apps
 init: false
 
 arch:
@@ -10,9 +11,7 @@ arch:
 
 startup: once
 boot: manual_only
-
 stage: experimental
-
 homeassistant_api: true
 
 map:
@@ -21,6 +20,9 @@ map:
     path: /config
 
 options:
+  diagnostic_only_enabled: false
+  controlled_preflight_test_enabled: false
+  minimum_free_space_mb: 200
   local_inventory_enabled: false
   local_inventory_type: frontend
   local_inventory_name: ""
@@ -39,6 +41,9 @@ options:
   spook: true
 
 schema:
+  diagnostic_only_enabled: bool
+  controlled_preflight_test_enabled: bool
+  minimum_free_space_mb: int(50,5000)
   local_inventory_enabled: bool
   local_inventory_type: str
   local_inventory_name: str
