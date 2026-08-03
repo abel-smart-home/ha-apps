@@ -41,6 +41,8 @@ inventory_enabled="false"
 restore_enabled="false"
 backup_test_enabled="false"
 compatibility_test_enabled="false"
+diagnostic_only_enabled="false"
+preflight_test_enabled="false"
 
 if bashio::config.true "local_inventory_enabled"; then
     inventory_enabled="true"
@@ -58,20 +60,86 @@ if bashio::config.true "controlled_compatibility_test_enabled"; then
     compatibility_test_enabled="true"
 fi
 
+if bashio::config.true "diagnostic_only_enabled"; then
+    diagnostic_only_enabled="true"
+fi
+
+if bashio::config.true "controlled_preflight_test_enabled"; then
+    preflight_test_enabled="true"
+fi
+
 active_modes=0
 [[ "${inventory_enabled}" == "true" ]] && active_modes=$((active_modes + 1))
 [[ "${restore_enabled}" == "true" ]] && active_modes=$((active_modes + 1))
 [[ "${backup_test_enabled}" == "true" ]] && active_modes=$((active_modes + 1))
 [[ "${compatibility_test_enabled}" == "true" ]] && active_modes=$((active_modes + 1))
+[[ "${diagnostic_only_enabled}" == "true" ]] && active_modes=$((active_modes + 1))
+[[ "${preflight_test_enabled}" == "true" ]] && active_modes=$((active_modes + 1))
 
 if (( active_modes > 1 )); then
     bashio::log.error \
-        "Inventario local, restauración y pruebas controladas son modos exclusivos"
+        "Diagnóstico, inventario, restauración y pruebas controladas son modos exclusivos"
 
     bashio::log.error \
         "Deja activado solamente uno y vuelve a iniciar la aplicación"
 
     exit 1
+fi
+
+
+if [[ "${preflight_test_enabled}" == "true" ]]; then
+    bashio::log.warning \
+        "Prueba controlada de diagnóstico activada"
+
+    bashio::log.info \
+        "La prueba utiliza catálogos y carpetas aisladas"
+
+    bashio::log.info \
+        "No se modificarán componentes reales"
+
+    if python3 /preflight_test.py; then
+        bashio::log.info \
+            "Prueba controlada de diagnóstico finalizada correctamente"
+        bashio::log.info \
+            "Reporte: /config/ui-manager/test/preflight/latest.txt"
+        exit 0
+    fi
+
+    preflight_test_exit_code="$?"
+    bashio::log.error \
+        "La prueba controlada de diagnóstico presentó errores"
+    bashio::log.error \
+        "Código de salida: ${preflight_test_exit_code}"
+    exit "${preflight_test_exit_code}"
+fi
+
+
+if [[ "${diagnostic_only_enabled}" == "true" ]]; then
+    bashio::log.warning \
+        "Modo de solo diagnóstico activado"
+
+    bashio::log.info \
+        "No se instalarán, actualizarán, repararán ni restaurarán componentes"
+
+    if python3 /preflight.py \
+        "${CATALOG_FILE}" \
+        --mode "SOLO DIAGNÓSTICO"; then
+
+        bashio::log.info \
+            "Diagnóstico finalizado correctamente"
+        bashio::log.info \
+            "Reporte: /config/ui-manager/diagnostics/latest.txt"
+        exit 0
+    fi
+
+    diagnostic_exit_code="$?"
+    bashio::log.warning \
+        "El diagnóstico encontró bloqueos para el mantenimiento"
+    bashio::log.warning \
+        "Código de salida: ${diagnostic_exit_code}"
+    bashio::log.info \
+        "Reporte: /config/ui-manager/diagnostics/latest.txt"
+    exit 0
 fi
 
 
@@ -154,6 +222,29 @@ if [[ "${compatibility_test_enabled}" == "true" ]]; then
         "Código de salida: ${compatibility_test_exit_code}"
     exit "${compatibility_test_exit_code}"
 fi
+
+
+bashio::log.info \
+    "Ejecutando diagnóstico previo"
+
+if ! python3 /preflight.py \
+    "${CATALOG_FILE}" \
+    --mode "MANTENIMIENTO"; then
+
+    bashio::log.error \
+        "El diagnóstico previo detectó uno o más fallos críticos"
+
+    bashio::log.error \
+        "No se modificará ningún componente"
+
+    bashio::log.info \
+        "Reporte: /config/ui-manager/diagnostics/latest.txt"
+
+    exit 1
+fi
+
+bashio::log.info \
+    "Diagnóstico previo aprobado"
 
 
 bashio::log.info \
