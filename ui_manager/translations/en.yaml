@@ -1,0 +1,58 @@
+configuration:
+  diagnostic_only_enabled:
+    name: Diagnostic only
+    description: Checks the environment and creates a report without modifying components.
+  controlled_preflight_test_enabled:
+    name: Controlled diagnostic test
+    description: Runs isolated tests of the preflight diagnostic logic.
+  minimum_free_space_mb:
+    name: Minimum free space
+    description: Minimum free space required in /config before maintenance, in MB.
+  local_inventory_enabled:
+    name: Local SHA-256 inventory
+    description: Calculates the checksum of an installed component without modifying it.
+  local_inventory_type:
+    name: Inventory type
+    description: Use frontend for a JavaScript file or integration for a directory.
+  local_inventory_name:
+    name: Component name
+    description: Name shown in the inventory report.
+  local_inventory_version:
+    name: Declared version
+    description: Version being evaluated in the laboratory.
+  local_inventory_path:
+    name: Local path
+    description: Path inside /config to the file or directory being inventoried.
+  restore_backup_enabled:
+    name: Restore backup
+    description: Enables the exclusive manual restore mode.
+  restore_component:
+    name: Component to restore
+    description: Catalog ID, for example sonofflan or spook.
+  restore_backup:
+    name: Selected backup
+    description: Use latest_good or the exact backup directory name.
+  controlled_backup_test_enabled:
+    name: Controlled backup test
+    description: Tests backup and restore logic in an isolated directory.
+  controlled_compatibility_test_enabled:
+    name: Controlled compatibility test
+    description: Tests blocking incompatible components before download.
+  max_integration_backups:
+    name: Maximum backups
+    description: Number of backups retained per integration.
+  mini_graph_card:
+    name: Manage Mini Graph Card
+    description: Installs, verifies and updates Mini Graph Card.
+  mushroom:
+    name: Manage Mushroom
+    description: Installs, verifies and updates Mushroom.
+  modern_circular_gauge:
+    name: Manage Modern Circular Gauge
+    description: Installs, verifies and updates Modern Circular Gauge.
+  sonofflan:
+    name: Manage SonoffLAN
+    description: Installs, verifies, backs up and updates SonoffLAN.
+  spook:
+    name: Manage Spook
+    description: Installs, verifies, backs up and updates Spook.
