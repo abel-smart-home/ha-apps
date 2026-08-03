@@ -2,6 +2,8 @@
 
 Herramienta de mantenimiento manual para instalaciones de Home Assistant OS.
 
+**Estado de la versión:** `1.0.0 stable`. Esta es la primera línea base estable, validada en instalaciones limpias y actualizaciones sobre `amd64` y `aarch64`.
+
 Permite instalar, actualizar, verificar y reparar tarjetas de interfaz e integraciones personalizadas previamente aprobadas, sin instalar HACS en los equipos de clientes.
 
 ## Funciones principales
