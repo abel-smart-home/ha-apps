@@ -20,15 +20,12 @@ COPY run.sh /run.sh
 COPY register_resource.py /register_resource.py
 COPY component_manager.py /component_manager.py
 COPY backup_manager.py /backup_manager.py
-COPY backup_test.py /backup_test.py
 COPY create_report.py /create_report.py
 COPY checksum_utils.py /checksum_utils.py
 COPY local_inventory.py /local_inventory.py
 COPY compatibility_utils.py /compatibility_utils.py
-COPY compatibility_test.py /compatibility_test.py
 COPY preflight_utils.py /preflight_utils.py
 COPY preflight.py /preflight.py
-COPY preflight_test.py /preflight_test.py
 COPY components.json /components.json
 
 RUN chmod a+x \
@@ -36,14 +33,11 @@ RUN chmod a+x \
     /register_resource.py \
     /component_manager.py \
     /backup_manager.py \
-    /backup_test.py \
     /create_report.py \
     /checksum_utils.py \
     /local_inventory.py \
     /compatibility_utils.py \
-    /compatibility_test.py \
     /preflight_utils.py \
-    /preflight.py \
-    /preflight_test.py
+    /preflight.py
 
 CMD ["/run.sh"]
