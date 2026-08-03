@@ -55,7 +55,7 @@ def run_manager_block_test() -> tuple[bool, str]:
             json.dumps(
                 {
                     "schema_version": 2,
-                    "catalog_version": "controlled-test-0.5.0",
+                    "catalog_version": "controlled-test-0.6.0",
                     "components": [
                         {
                             "id": "blocked_test",
@@ -217,7 +217,7 @@ def main() -> int:
 
     lines = [
         "SMART HOME UI MANAGER",
-        "PRUEBA CONTROLADA DE COMPATIBILIDAD 0.5.0",
+        "PRUEBA CONTROLADA DE COMPATIBILIDAD 0.6.0",
         "=" * 76,
         f"Fecha: {now.strftime('%Y-%m-%d %H:%M:%S %z')}",
         f"Resultado: {result}",
