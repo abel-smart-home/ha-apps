@@ -5,7 +5,7 @@ ARG BUILD_VERSION
 
 LABEL \
     io.hass.name="Smart Home UI Manager" \
-    io.hass.description="Instala, verifica, genera inventarios y restaura componentes personalizados para Home Assistant" \
+    io.hass.description="Instala, verifica compatibilidad, genera inventarios y restaura componentes personalizados para Home Assistant" \
     io.hass.arch="${BUILD_ARCH}" \
     io.hass.type="app" \
     io.hass.version="${BUILD_VERSION}"
@@ -13,6 +13,7 @@ LABEL \
 RUN apk add --no-cache \
     curl \
     python3 \
+    py3-packaging \
     py3-websocket-client
 
 COPY run.sh /run.sh
@@ -23,6 +24,8 @@ COPY backup_test.py /backup_test.py
 COPY create_report.py /create_report.py
 COPY checksum_utils.py /checksum_utils.py
 COPY local_inventory.py /local_inventory.py
+COPY compatibility_utils.py /compatibility_utils.py
+COPY compatibility_test.py /compatibility_test.py
 COPY components.json /components.json
 
 RUN chmod a+x \
@@ -33,6 +36,8 @@ RUN chmod a+x \
     /backup_test.py \
     /create_report.py \
     /checksum_utils.py \
-    /local_inventory.py
+    /local_inventory.py \
+    /compatibility_utils.py \
+    /compatibility_test.py
 
 CMD ["/run.sh"]
