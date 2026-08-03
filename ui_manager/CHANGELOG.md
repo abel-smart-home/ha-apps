@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.4.1
+
+- Agregada la selección segura `latest_good` para restauraciones.
+- `latest_good` omite automáticamente respaldos SUSPECT, UNKNOWN e INVALID.
+- Los respaldos se clasifican como GOOD, SUSPECT o UNKNOWN.
+- Los respaldos previos a una actualización se marcan como GOOD.
+- Los respaldos creados antes de reparar una huella incorrecta se marcan como SUSPECT.
+- Los respaldos previos a una restauración se clasifican comparando su SHA-256 con el catálogo aprobado.
+- Agregado inventario de respaldos con fecha, versión, motivo, clasificación y SHA-256.
+- El inventario se actualiza después de cada mantenimiento y restauración.
+- Se conserva al menos el respaldo GOOD más reciente dentro del límite configurado.
+- Agregada una prueba controlada y aislada para validar `latest_good` y la restauración.
+- La prueba controlada no modifica integraciones reales.
+
 ## 0.4.0
 
 - Agregada restauración manual de respaldos para integraciones personalizadas.
