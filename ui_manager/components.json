@@ -1,6 +1,6 @@
 {
-  "schema_version": 1,
-  "catalog_version": "2026.08.02-1",
+  "schema_version": 2,
+  "catalog_version": "2026.08.02-2",
   "components": [
     {
       "id": "mini_graph_card",
@@ -50,7 +50,8 @@
       "url": "https://github.com/AlexxIT/SonoffLAN/archive/refs/tags/v3.12.2.zip",
       "sha256": "e86bba20ef02043e3f6f7a6e256cd6fc777d8e6fc51b503b98187a5a02e7a1c9",
       "integration_id": "sonoff",
-      "source_folder": "sonoff"
+      "source_folder": "sonoff",
+      "min_home_assistant": "2023.2.0"
     },
     {
       "id": "spook",
@@ -61,7 +62,8 @@
       "url": "https://github.com/frenck/spook/releases/download/v5.0.0/spook.zip",
       "sha256": "7da7fb098063940902afbacc1a206eb85a70e94339575e5eaf036b371c05b29a",
       "integration_id": "spook",
-      "source_folder": "spook"
+      "source_folder": "spook",
+      "min_home_assistant": "2026.3.0"
     }
   ]
 }
