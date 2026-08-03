@@ -78,7 +78,7 @@ def fetch_home_assistant_version(timeout: int = 15) -> str:
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
             "Accept": "application/json",
-            "User-Agent": "Smart-Home-UI-Manager/0.5.0",
+            "User-Agent": "Smart-Home-UI-Manager/0.6.0",
         },
         method="GET",
     )
