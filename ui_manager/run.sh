@@ -40,6 +40,7 @@ bashio::log.info \
 inventory_enabled="false"
 restore_enabled="false"
 backup_test_enabled="false"
+compatibility_test_enabled="false"
 
 if bashio::config.true "local_inventory_enabled"; then
     inventory_enabled="true"
@@ -53,14 +54,19 @@ if bashio::config.true "controlled_backup_test_enabled"; then
     backup_test_enabled="true"
 fi
 
+if bashio::config.true "controlled_compatibility_test_enabled"; then
+    compatibility_test_enabled="true"
+fi
+
 active_modes=0
 [[ "${inventory_enabled}" == "true" ]] && active_modes=$((active_modes + 1))
 [[ "${restore_enabled}" == "true" ]] && active_modes=$((active_modes + 1))
 [[ "${backup_test_enabled}" == "true" ]] && active_modes=$((active_modes + 1))
+[[ "${compatibility_test_enabled}" == "true" ]] && active_modes=$((active_modes + 1))
 
 if (( active_modes > 1 )); then
     bashio::log.error \
-        "Inventario local, restauración y prueba controlada son modos exclusivos"
+        "Inventario local, restauración y pruebas controladas son modos exclusivos"
 
     bashio::log.error \
         "Deja activado solamente uno y vuelve a iniciar la aplicación"
@@ -120,6 +126,33 @@ if [[ "${backup_test_enabled}" == "true" ]]; then
     bashio::log.error \
         "Código de salida: ${test_exit_code}"
     exit "${test_exit_code}"
+fi
+
+
+if [[ "${compatibility_test_enabled}" == "true" ]]; then
+    bashio::log.warning \
+        "Prueba controlada de compatibilidad activada"
+
+    bashio::log.info \
+        "La prueba es de solo lectura y utiliza un catálogo ficticio aislado"
+
+    bashio::log.info \
+        "No se modificarán componentes reales"
+
+    if python3 /compatibility_test.py; then
+        bashio::log.info \
+            "Prueba de compatibilidad finalizada correctamente"
+        bashio::log.info \
+            "Reporte: /config/ui-manager/test/compatibility/latest.txt"
+        exit 0
+    fi
+
+    compatibility_test_exit_code="$?"
+    bashio::log.error \
+        "La prueba de compatibilidad presentó errores"
+    bashio::log.error \
+        "Código de salida: ${compatibility_test_exit_code}"
+    exit "${compatibility_test_exit_code}"
 fi
 
 
@@ -207,8 +240,39 @@ catalog_version="$(
         "desconocido"
 )"
 
+home_assistant_version="$(
+    read_state_value \
+        "home_assistant_version" \
+        ""
+)"
+
+incompatible_count="$(
+    read_state_value \
+        "incompatible" \
+        "0"
+)"
+
+compatibility_error="$(
+    read_state_value \
+        "compatibility_error" \
+        ""
+)"
+
 bashio::log.info \
     "Catálogo procesado: ${catalog_version}"
+
+if [[ -n "${home_assistant_version}" ]]; then
+    bashio::log.info \
+        "Home Assistant Core detectado: ${home_assistant_version}"
+elif [[ -n "${compatibility_error}" ]]; then
+    bashio::log.warning \
+        "No se pudo consultar Home Assistant Core: ${compatibility_error}"
+fi
+
+if [[ "${incompatible_count}" != "0" ]]; then
+    bashio::log.warning \
+        "Componentes incompatibles omitidos: ${incompatible_count}"
+fi
 
 
 if [[ "${integration_changed}" == "true" ]]; then
@@ -223,14 +287,17 @@ else
 fi
 
 
-if [[ "${error_count}" != "0" ]] \
-    || [[ "${manager_exit_code}" != "0" ]]; then
-
+if [[ "${error_count}" != "0" ]]; then
     bashio::log.warning \
         "Uno o más componentes presentaron errores"
 
     bashio::log.warning \
         "Revisa el reporte de mantenimiento"
+elif [[ "${manager_exit_code}" != "0" ]] \
+    && [[ "${incompatible_count}" == "0" ]]; then
+
+    bashio::log.warning \
+        "El administrador terminó con un código inesperado: ${manager_exit_code}"
 fi
 
 
@@ -240,7 +307,8 @@ bashio::log.info \
 if python3 /create_report.py \
     "${integration_changed}" \
     "${RESULTS_FILE}" \
-    "${CATALOG_FILE}"; then
+    "${CATALOG_FILE}" \
+    "${STATE_FILE}"; then
 
     bashio::log.info \
         "Reporte de mantenimiento generado correctamente"
