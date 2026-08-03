@@ -37,12 +37,14 @@ PY
 bashio::log.info \
     "Smart Home UI Manager iniciado correctamente"
 
+if ! python3 /build_metadata.py --log; then
+    bashio::log.warning \
+        "No se pudo leer la información de compilación"
+fi
+
 inventory_enabled="false"
 restore_enabled="false"
-backup_test_enabled="false"
-compatibility_test_enabled="false"
 diagnostic_only_enabled="false"
-preflight_test_enabled="false"
 
 if bashio::config.true "local_inventory_enabled"; then
     inventory_enabled="true"
@@ -52,65 +54,23 @@ if bashio::config.true "restore_backup_enabled"; then
     restore_enabled="true"
 fi
 
-if bashio::config.true "controlled_backup_test_enabled"; then
-    backup_test_enabled="true"
-fi
-
-if bashio::config.true "controlled_compatibility_test_enabled"; then
-    compatibility_test_enabled="true"
-fi
-
 if bashio::config.true "diagnostic_only_enabled"; then
     diagnostic_only_enabled="true"
-fi
-
-if bashio::config.true "controlled_preflight_test_enabled"; then
-    preflight_test_enabled="true"
 fi
 
 active_modes=0
 [[ "${inventory_enabled}" == "true" ]] && active_modes=$((active_modes + 1))
 [[ "${restore_enabled}" == "true" ]] && active_modes=$((active_modes + 1))
-[[ "${backup_test_enabled}" == "true" ]] && active_modes=$((active_modes + 1))
-[[ "${compatibility_test_enabled}" == "true" ]] && active_modes=$((active_modes + 1))
 [[ "${diagnostic_only_enabled}" == "true" ]] && active_modes=$((active_modes + 1))
-[[ "${preflight_test_enabled}" == "true" ]] && active_modes=$((active_modes + 1))
 
 if (( active_modes > 1 )); then
     bashio::log.error \
-        "Diagnóstico, inventario, restauración y pruebas controladas son modos exclusivos"
+        "Diagnóstico, inventario y restauración son modos exclusivos"
 
     bashio::log.error \
         "Deja activado solamente uno y vuelve a iniciar la aplicación"
 
     exit 1
-fi
-
-
-if [[ "${preflight_test_enabled}" == "true" ]]; then
-    bashio::log.warning \
-        "Prueba controlada de diagnóstico activada"
-
-    bashio::log.info \
-        "La prueba utiliza catálogos y carpetas aisladas"
-
-    bashio::log.info \
-        "No se modificarán componentes reales"
-
-    if python3 /preflight_test.py; then
-        bashio::log.info \
-            "Prueba controlada de diagnóstico finalizada correctamente"
-        bashio::log.info \
-            "Reporte: /config/ui-manager/test/preflight/latest.txt"
-        exit 0
-    fi
-
-    preflight_test_exit_code="$?"
-    bashio::log.error \
-        "La prueba controlada de diagnóstico presentó errores"
-    bashio::log.error \
-        "Código de salida: ${preflight_test_exit_code}"
-    exit "${preflight_test_exit_code}"
 fi
 
 
@@ -167,60 +127,6 @@ if [[ "${inventory_enabled}" == "true" ]]; then
         "La aplicación se detendrá"
 
     exit 0
-fi
-
-
-if [[ "${backup_test_enabled}" == "true" ]]; then
-    bashio::log.warning \
-        "Prueba controlada de respaldos activada"
-
-    bashio::log.info \
-        "La prueba utilizará únicamente una carpeta aislada"
-
-    bashio::log.info \
-        "No se modificarán integraciones reales"
-
-    if python3 /backup_test.py; then
-        bashio::log.info \
-            "Prueba controlada finalizada correctamente"
-        bashio::log.info \
-            "Reporte: /config/ui-manager/test/backup-manager/latest.txt"
-        exit 0
-    fi
-
-    test_exit_code="$?"
-    bashio::log.error \
-        "La prueba controlada presentó errores"
-    bashio::log.error \
-        "Código de salida: ${test_exit_code}"
-    exit "${test_exit_code}"
-fi
-
-
-if [[ "${compatibility_test_enabled}" == "true" ]]; then
-    bashio::log.warning \
-        "Prueba controlada de compatibilidad activada"
-
-    bashio::log.info \
-        "La prueba es de solo lectura y utiliza un catálogo ficticio aislado"
-
-    bashio::log.info \
-        "No se modificarán componentes reales"
-
-    if python3 /compatibility_test.py; then
-        bashio::log.info \
-            "Prueba de compatibilidad finalizada correctamente"
-        bashio::log.info \
-            "Reporte: /config/ui-manager/test/compatibility/latest.txt"
-        exit 0
-    fi
-
-    compatibility_test_exit_code="$?"
-    bashio::log.error \
-        "La prueba de compatibilidad presentó errores"
-    bashio::log.error \
-        "Código de salida: ${compatibility_test_exit_code}"
-    exit "${compatibility_test_exit_code}"
 fi
 
 
