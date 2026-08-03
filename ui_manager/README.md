@@ -14,7 +14,10 @@ Permite instalar, actualizar, verificar y reparar tarjetas de interfaz e integra
 - Respaldos y restauración segura de integraciones.
 - Inventario local de huellas SHA-256.
 - Reportes históricos de mantenimiento y diagnóstico.
+- Imagen precompilada multi-arquitectura para `amd64` y `aarch64`.
 
 La aplicación funciona bajo ejecución manual, realiza la tarea seleccionada y se detiene.
 
-Consulta `DOCS.md` para conocer la configuración y los procedimientos de prueba.
+Desde la versión 0.7.0, GitHub Actions construye y publica la imagen en GitHub Container Registry. Las instalaciones de Home Assistant descargan la imagen terminada y ya no compilan la aplicación localmente.
+
+Consulta `DOCS.md` para conocer la configuración y los procedimientos de mantenimiento.
