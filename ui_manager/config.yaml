@@ -1,6 +1,6 @@
 name: Smart Home UI Manager
-description: Instala, verifica, genera inventarios y restaura componentes personalizados para Home Assistant
-version: "0.4.1"
+description: Instala, verifica compatibilidad, genera inventarios y restaura componentes personalizados para Home Assistant
+version: "0.5.0"
 slug: ui_manager
 init: false
 
@@ -30,6 +30,7 @@ options:
   restore_component: ""
   restore_backup: latest_good
   controlled_backup_test_enabled: false
+  controlled_compatibility_test_enabled: false
   max_integration_backups: 5
   mini_graph_card: true
   mushroom: true
@@ -47,6 +48,7 @@ schema:
   restore_component: str
   restore_backup: str
   controlled_backup_test_enabled: bool
+  controlled_compatibility_test_enabled: bool
   max_integration_backups: int(1,20)
   mini_graph_card: bool
   mushroom: bool
