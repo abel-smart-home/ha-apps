@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.1
+
+- Ampliada `DOCS.md` con un procedimiento breve y ejemplos para cada opción de configuración.
+- Agregadas instrucciones completas para diagnóstico, mantenimiento, inventario SHA-256 y restauración.
+- Documentada la equivalencia de rutas entre `/homeassistant` y `/config`.
+- Agregada solución de errores frecuentes y una tabla central de rutas de reportes.
+- Convertido `local_inventory_type` de texto libre a una lista seleccionable con `frontend` e `integration`.
+- Mejoradas las descripciones en español e inglés de las opciones de inventario.
+- Conservada sin cambios la lógica estable de instalación, actualización, reparación, respaldo y restauración de 1.0.0.
+
 ## 1.0.0
 
 - Primera versión estable de Smart Home UI Manager.
