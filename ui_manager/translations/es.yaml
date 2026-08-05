@@ -9,8 +9,8 @@ configuration:
     name: Inventario local SHA-256
     description: Calcula la huella de un componente ya instalado sin modificarlo.
   local_inventory_type:
-    name: Tipo de inventario
-    description: Usa frontend para un archivo JavaScript o integration para una carpeta.
+    name: Tipo de componente
+    description: Selecciona frontend para una tarjeta JavaScript o integration para una integración personalizada.
   local_inventory_name:
     name: Nombre del componente
     description: Nombre que aparecerá en el reporte de inventario.
@@ -19,7 +19,7 @@ configuration:
     description: Versión que estás evaluando en el laboratorio.
   local_inventory_path:
     name: Ruta local
-    description: Ruta dentro de /config al archivo o carpeta que se inventariará.
+    description: Usa una ruta dentro de /config; no utilices /homeassistant.
   restore_backup_enabled:
     name: Restaurar respaldo
     description: Activa el modo exclusivo de restauración manual.
