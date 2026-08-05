@@ -9,8 +9,8 @@ configuration:
     name: Local SHA-256 inventory
     description: Calculates the checksum of an installed component without modifying it.
   local_inventory_type:
-    name: Inventory type
-    description: Use frontend for a JavaScript file or integration for a directory.
+    name: Component type
+    description: Select frontend for a JavaScript card or integration for a custom integration.
   local_inventory_name:
     name: Component name
     description: Name shown in the inventory report.
@@ -19,7 +19,7 @@ configuration:
     description: Version being evaluated in the laboratory.
   local_inventory_path:
     name: Local path
-    description: Path inside /config to the file or directory being inventoried.
+    description: Use a path inside /config; do not use /homeassistant.
   restore_backup_enabled:
     name: Restore backup
     description: Enables the exclusive manual restore mode.
