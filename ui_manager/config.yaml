@@ -1,6 +1,6 @@
 name: Smart Home UI Manager
 description: Instala, valida, diagnostica, genera inventarios y restaura componentes personalizados para Home Assistant
-version: "1.0.1"
+version: "1.1.0"
 slug: ui_manager
 url: https://github.com/abel-smart-home/ha-apps
 image: ghcr.io/abel-smart-home/smart-home-ui-manager
@@ -37,6 +37,8 @@ options:
   modern_circular_gauge: true
   sonofflan: true
   spook: true
+  smart_entity_timer: false
+  smart_entity_timer_card: false
 
 schema:
   diagnostic_only_enabled: bool
@@ -55,3 +57,5 @@ schema:
   modern_circular_gauge: bool
   sonofflan: bool
   spook: bool
+  smart_entity_timer: bool
+  smart_entity_timer_card: bool

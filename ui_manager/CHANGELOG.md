@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.1.0
+
+- Agregado Smart Entity Timer `0.3.0` como integración opcional, desactivada por defecto.
+- Agregada Smart Entity Timer Card `0.2.2` como tarjeta opcional, desactivada por defecto.
+- Configurado Home Assistant `2026.7.0` como mínimo para ambos componentes.
+- Agregadas las huellas SHA-256 aprobadas obtenidas en laboratorio.
+- La integración se descarga desde el tag inmutable `v0.3.0`; la tarjeta desde `dist/smart-entity-timer-card.js` del tag `v0.2.2`.
+- Documentada la dependencia de la tarjeta respecto de Smart Entity Timer.
+- Documentada la adopción desde HACS y la recomendación de no mantener dos gestores actualizando el mismo componente.
+- Documentada la precaución especial para migraciones de Smart Entity Timer `0.2.x` a `0.3.0`.
+- Conservada la aplicación en estado `stable`; los dos componentes nuevos permanecen desactivados por defecto para adopción controlada.
+
 ## 1.0.1
 
 - Ampliada `DOCS.md` con un procedimiento breve y ejemplos para cada opción de configuración.
@@ -42,6 +54,7 @@
 - Agregada firma Cosign para imágenes y manifiesto multi-arquitectura.
 - La instalación en Home Assistant ya no necesita compilar la imagen localmente.
 - Conservados los modos operativos de diagnóstico, inventario, restauración y mantenimiento.
+
 
 ## 0.6.0
 

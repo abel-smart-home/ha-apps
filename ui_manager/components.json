@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "catalog_version": "2026.08.02-2",
+  "catalog_version": "2026.08.07-1",
   "components": [
     {
       "id": "mini_graph_card",
@@ -64,6 +64,32 @@
       "integration_id": "spook",
       "source_folder": "spook",
       "min_home_assistant": "2026.3.0"
+    },
+    {
+      "id": "smart_entity_timer",
+      "name": "Smart Entity Timer",
+      "option": "smart_entity_timer",
+      "type": "integration",
+      "version": "0.3.0",
+      "url": "https://github.com/abel-smart-timer/smart-entity-timer/archive/refs/tags/v0.3.0.zip",
+      "sha256": "e43b10283883132485391d0a9a75eb835733809471d71a9605ef700662ea3504",
+      "integration_id": "smart_entity_timer",
+      "source_folder": "smart_entity_timer",
+      "min_home_assistant": "2026.7.0"
+    },
+    {
+      "id": "smart_entity_timer_card",
+      "name": "Smart Entity Timer Card",
+      "option": "smart_entity_timer_card",
+      "type": "frontend",
+      "version": "0.2.2",
+      "url": "https://raw.githubusercontent.com/abel-smart-timer/smart-entity-timer-card/v0.2.2/dist/smart-entity-timer-card.js",
+      "sha256": "aba1d46bce7cc8dbe15faab5936000af2b99b7b3b7df72ecaf5918396256a168",
+      "install_dir": "/config/www/ui-components/smart-entity-timer-card",
+      "filename": "smart-entity-timer-card.js",
+      "resource_url": "/local/ui-components/smart-entity-timer-card/smart-entity-timer-card.js",
+      "resource_type": "module",
+      "min_home_assistant": "2026.7.0"
     }
   ]
 }

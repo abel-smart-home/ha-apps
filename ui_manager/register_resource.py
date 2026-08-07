@@ -24,7 +24,6 @@ def fail(message: str) -> int:
 
 def receive_json(connection: websocket.WebSocket) -> dict[str, Any]:
     raw_message = connection.recv()
-
     if isinstance(raw_message, bytes):
         raw_message = raw_message.decode("utf-8")
 
@@ -61,7 +60,6 @@ def list_resources(
     )
 
     response = wait_for_response(connection, request_id)
-
     if not response.get("success"):
         error = response.get("error", {})
         raise RuntimeError(
@@ -112,7 +110,6 @@ def main() -> int:
         return fail("No está disponible SUPERVISOR_TOKEN")
 
     connection: websocket.WebSocket | None = None
-
     try:
         connection = websocket.create_connection(
             WEBSOCKET_URL,
@@ -126,7 +123,6 @@ def main() -> int:
             return fail(
                 "Home Assistant no inició el proceso de autenticación"
             )
-
         connection.send(
             json.dumps(
                 {
@@ -140,7 +136,6 @@ def main() -> int:
 
         if authentication_result.get("type") != "auth_ok":
             return fail("Home Assistant rechazó la autenticación")
-
         request_id = 1
         resources = list_resources(connection, request_id)
         matches = matching_resources(resources, base_url)
@@ -153,7 +148,6 @@ def main() -> int:
 
         if matches:
             existing_resource = matches[0]
-
             existing_url = str(existing_resource.get("url", ""))
             existing_type = str(
                 existing_resource.get(
@@ -168,7 +162,6 @@ def main() -> int:
             ):
                 log(f"El recurso ya está registrado: {desired_url}")
                 return 0
-
             resource_id = existing_resource.get("id")
 
             if not resource_id:
@@ -185,7 +178,6 @@ def main() -> int:
                 "url": desired_url,
                 "res_type": desired_type,
             }
-
             action = "actualizado"
 
         else:
@@ -205,7 +197,6 @@ def main() -> int:
 
         if not result.get("success"):
             error = result.get("error", {})
-
             return fail(
                 error.get(
                     "message",
@@ -216,7 +207,6 @@ def main() -> int:
         # Verificar que el recurso quedó registrado.
         request_id += 1
         updated_resources = list_resources(connection, request_id)
-
         verified = any(
             str(resource.get("url", "")) == desired_url
             and str(
@@ -234,7 +224,6 @@ def main() -> int:
                 "Home Assistant aceptó el cambio, "
                 "pero no pudo verificarse"
             )
-
         log(f"Recurso {action} correctamente: {desired_url}")
         return 0
 

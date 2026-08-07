@@ -2,7 +2,7 @@
 
 Herramienta estable de mantenimiento manual para instalaciones de Home Assistant OS.
 
-**Estado de la versión:** `1.0.1 stable`.
+**Estado de la versión:** `1.1.0 stable`.
 
 Permite instalar, actualizar, verificar y reparar tarjetas de interfaz e integraciones personalizadas previamente aprobadas, sin instalar HACS en los equipos de clientes.
 
@@ -33,6 +33,17 @@ Smart Home UI Manager accede a la configuración mediante:
 ```
 
 Aunque otras herramientas muestren `/homeassistant`, las rutas introducidas en esta aplicación deben comenzar con `/config`.
+
+## Componentes opcionales en desarrollo
+
+La versión `1.1.0` agrega dos componentes propios desactivados por defecto:
+
+- **Smart Entity Timer 0.3.0** — integración personalizada.
+- **Smart Entity Timer Card 0.2.2** — tarjeta de dashboard que requiere Smart Entity Timer.
+
+Smart Home UI Manager continúa siendo estable. Estos dos componentes permanecen como opciones de adopción controlada: solo se administran cuando se habilitan explícitamente en la configuración. Ambos requieren Home Assistant `2026.7.0` o posterior.
+
+Para evitar que dos gestores modifiquen el mismo componente, no mantengas HACS actualizando estos componentes en una instalación que ya sea administrada por Smart Home UI Manager. HACS puede seguir utilizándose en el laboratorio para validar futuras versiones.
 
 ## Distribución
 

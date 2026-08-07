@@ -2,7 +2,7 @@
 
 ## Estado de la aplicación
 
-La versión `1.0.1` mantiene la línea estable iniciada en `1.0.0`. Esta actualización no cambia la lógica de instalación, actualización, reparación, respaldo o restauración. Agrega documentación operativa ampliada y convierte **Tipo de inventario** en una lista seleccionable con dos valores válidos:
+La versión `1.1.0` mantiene la línea estable iniciada en `1.0.0` y agrega dos componentes opcionales, desactivados por defecto: **Smart Entity Timer 0.3.0** y **Smart Entity Timer Card 0.2.2**. La lógica estable de instalación, actualización, reparación, respaldo y restauración se conserva. El tipo de inventario continúa como lista seleccionable con dos valores válidos:
 
 ```text
 frontend
@@ -487,6 +487,55 @@ spook: true
 
 Administra la integración Spook. Antes de actualizar o reparar crea un respaldo. Puede requerir reiniciar Home Assistant Core.
 
+## `smart_entity_timer`
+
+```yaml
+smart_entity_timer: false
+```
+
+Administra **Smart Entity Timer 0.3.0**. Es una integración personalizada y permanece desactivada por defecto porque todavía está en desarrollo activo. Requiere Home Assistant `2026.7.0` o posterior.
+
+Cuando se habilita, Smart Home UI Manager puede instalarla, verificar su versión y SHA-256, actualizarla, repararla y crear respaldos de sus archivos antes de una actualización o reparación.
+
+La instalación se realiza en:
+
+```text
+/config/custom_components/smart_entity_timer
+```
+
+Después de instalarla o actualizarla, reinicia Home Assistant Core.
+
+**Importante para migraciones:** el respaldo de Smart Home UI Manager conserva los archivos de la integración, pero no sustituye un respaldo completo de Home Assistant. La migración oficial de Smart Entity Timer `0.2.x` a `0.3.0` requiere que no haya temporizadores activos y recomienda crear un respaldo completo de Home Assistant antes de actualizar.
+
+## `smart_entity_timer_card`
+
+```yaml
+smart_entity_timer_card: false
+```
+
+Administra **Smart Entity Timer Card 0.2.2**. Permanece desactivada por defecto y requiere Smart Entity Timer. Requiere Home Assistant `2026.7.0` o posterior.
+
+La tarjeta se instala en:
+
+```text
+/config/www/ui-components/smart-entity-timer-card/smart-entity-timer-card.js
+```
+
+y registra automáticamente el recurso:
+
+```text
+/local/ui-components/smart-entity-timer-card/smart-entity-timer-card.js?v=0.2.2
+```
+
+Para usar el conjunto completo, habilita ambas opciones:
+
+```yaml
+smart_entity_timer: true
+smart_entity_timer_card: true
+```
+
+La integración aparece primero en el catálogo y se procesa antes que la tarjeta. Si habilitas solo la tarjeta, el archivo y el recurso pueden instalarse, pero la tarjeta no tendrá el backend Smart Entity Timer necesario para funcionar.
+
 ### Regla para todos los componentes
 
 - `true`: Smart Home UI Manager administra el componente.
@@ -495,6 +544,40 @@ Administra la integración Spook. Antes de actualizar o reparar crea un respaldo
 - La aplicación no elimina configuraciones, cuentas ni dispositivos de Home Assistant.
 
 ---
+
+# Adopción desde HACS de Smart Entity Timer
+
+En el laboratorio puedes continuar usando HACS para validar versiones nuevas y obtener sus huellas. En una instalación administrada por Smart Home UI Manager evita que HACS y UI Manager actualicen simultáneamente el mismo componente.
+
+## Integración
+
+Si Smart Entity Timer `0.3.0` ya está instalado mediante HACS y su árbol de archivos coincide con la huella aprobada, UI Manager lo reconocerá como `VERIFICADO`. A partir de ese momento, evita actualizar esa misma integración desde HACS en ese equipo.
+
+## Tarjeta
+
+HACS suele instalar la tarjeta en:
+
+```text
+/config/www/community/smart-entity-timer-card/smart-entity-timer-card.js
+```
+
+UI Manager utiliza su propia ubicación:
+
+```text
+/config/www/ui-components/smart-entity-timer-card/smart-entity-timer-card.js
+```
+
+No mantengas cargados simultáneamente dos recursos de la misma tarjeta. En una instalación de cliente deja como recurso activo únicamente el administrado por UI Manager.
+
+## Huellas aprobadas para 1.1.0
+
+```text
+Smart Entity Timer 0.3.0
+e43b10283883132485391d0a9a75eb835733809471d71a9605ef700662ea3504
+
+Smart Entity Timer Card 0.2.2
+aba1d46bce7cc8dbe15faab5936000af2b99b7b3b7df72ecaf5918396256a168
+```
 
 # Mantenimiento normal
 
@@ -626,7 +709,7 @@ No es un error. La aplicación comprobó que el recurso correcto ya existe.
 
 ## Cuándo reiniciar Home Assistant Core
 
-Normalmente después de instalar, actualizar, reparar o restaurar SonoffLAN o Spook. Las tarjetas de frontend suelen requerir únicamente recargar el navegador.
+Normalmente después de instalar, actualizar, reparar o restaurar SonoffLAN, Spook o Smart Entity Timer. Las tarjetas de frontend suelen requerir únicamente recargar el navegador.
 
 # Publicar una versión futura
 
@@ -643,7 +726,7 @@ Normalmente después de instalar, actualizar, reparar o restaurar SonoffLAN o Sp
 11. Ejecuta diagnóstico y mantenimiento normal.
 12. Distribuye la actualización gradualmente.
 
-No sobrescribas una versión publicada. Una corrección posterior a `1.0.1` debe publicarse como `1.0.2`.
+No sobrescribas una versión publicada. Una corrección posterior a `1.1.0` debe publicarse como `1.1.1`; una nueva función compatible puede publicarse como `1.2.0`.
 
 # Componentes de terceros
 
