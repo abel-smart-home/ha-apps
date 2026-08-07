@@ -47,3 +47,9 @@ configuration:
   spook:
     name: Manage Spook
     description: Installs, verifies, backs up and updates Spook.
+  smart_entity_timer:
+    name: Manage Smart Entity Timer
+    description: Installs, verifies, backs up and updates Smart Entity Timer 0.3.0. Development option; disabled by default.
+  smart_entity_timer_card:
+    name: Manage Smart Entity Timer Card
+    description: Installs, verifies and updates Smart Entity Timer Card 0.2.2. Requires Smart Entity Timer; disabled by default.
