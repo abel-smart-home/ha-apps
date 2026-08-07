@@ -1,0 +1,55 @@
+configuration:
+  diagnostic_only_enabled:
+    name: Diagnostic only
+    description: Checks the environment and creates a report without modifying components.
+  minimum_free_space_mb:
+    name: Minimum free space
+    description: Minimum free space required in /config before maintenance, in MB.
+  local_inventory_enabled:
+    name: Local SHA-256 inventory
+    description: Calculates the checksum of an installed component without modifying it.
+  local_inventory_type:
+    name: Component type
+    description: Select frontend for a JavaScript card or integration for a custom integration.
+  local_inventory_name:
+    name: Component name
+    description: Name shown in the inventory report.
+  local_inventory_version:
+    name: Declared version
+    description: Version being evaluated in the laboratory.
+  local_inventory_path:
+    name: Local path
+    description: Use a path inside /config; do not use /homeassistant.
+  restore_backup_enabled:
+    name: Restore backup
+    description: Enables the exclusive manual restore mode.
+  restore_component:
+    name: Component to restore
+    description: Catalog ID, for example sonofflan or spook.
+  restore_backup:
+    name: Selected backup
+    description: Use latest_good or the exact backup directory name.
+  max_integration_backups:
+    name: Maximum backups
+    description: Number of backups retained per integration.
+  mini_graph_card:
+    name: Manage Mini Graph Card
+    description: Installs, verifies and updates Mini Graph Card.
+  mushroom:
+    name: Manage Mushroom
+    description: Installs, verifies and updates Mushroom.
+  modern_circular_gauge:
+    name: Manage Modern Circular Gauge
+    description: Installs, verifies and updates Modern Circular Gauge.
+  sonofflan:
+    name: Manage SonoffLAN
+    description: Installs, verifies, backs up and updates SonoffLAN.
+  spook:
+    name: Manage Spook
+    description: Installs, verifies, backs up and updates Spook.
+  smart_entity_timer:
+    name: Manage Smart Entity Timer
+    description: Installs, verifies, backs up and updates Smart Entity Timer 0.3.0. Development option; disabled by default.
+  smart_entity_timer_card:
+    name: Manage Smart Entity Timer Card
+    description: Installs, verifies and updates Smart Entity Timer Card 0.2.2. Requires Smart Entity Timer; disabled by default.
