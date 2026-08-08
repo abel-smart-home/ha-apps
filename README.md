@@ -2,7 +2,7 @@
 
 Herramienta estable de mantenimiento manual para instalaciones de Home Assistant OS.
 
-**Estado de la versión:** `1.1.0 stable`.
+**Estado de la versión:** `1.1.1 stable`.
 
 Permite instalar, actualizar, verificar y reparar tarjetas de interfaz e integraciones personalizadas previamente aprobadas, sin instalar HACS en los equipos de clientes.
 
@@ -36,10 +36,12 @@ Aunque otras herramientas muestren `/homeassistant`, las rutas introducidas en e
 
 ## Componentes opcionales en desarrollo
 
-La versión `1.1.0` agrega dos componentes propios desactivados por defecto:
+La versión `1.1.1` agrega dos componentes propios desactivados por defecto:
 
 - **Smart Entity Timer 0.3.0** — integración personalizada.
-- **Smart Entity Timer Card 0.2.2** — tarjeta de dashboard que requiere Smart Entity Timer.
+- **Smart Entity Timer Card 0.3.0** — tarjeta de dashboard que requiere Smart Entity Timer.
+
+Las versiones, URLs y huellas SHA-256 aprobadas se mantienen en `ui_manager/components.json`, que actúa como fuente de verdad del catálogo.
 
 Smart Home UI Manager continúa siendo estable. Estos dos componentes permanecen como opciones de adopción controlada: solo se administran cuando se habilitan explícitamente en la configuración. Ambos requieren Home Assistant `2026.7.0` o posterior.
 
@@ -55,4 +57,4 @@ ghcr.io/abel-smart-home/smart-home-ui-manager
 
 GitHub Actions construye las imágenes `amd64` y `aarch64`, publica el manifiesto genérico y comprueba que las tres referencias sean públicas y contengan los metadatos esperados.
 
-Consulta `DOCS.md` para conocer cada opción, los modos de diagnóstico, inventario, restauración y mantenimiento, las rutas de reportes y la solución de errores frecuentes.
+Consulta [`ui_manager/DOCS.md`](ui_manager/DOCS.md) para conocer cada opción, los procedimientos para obtener SHA-256 y URLs de publicación, actualizar componentes, ejecutar diagnóstico, inventario, restauración y mantenimiento, además de las rutas de reportes y solución de errores frecuentes.
