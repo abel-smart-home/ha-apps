@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.1
+
+- Actualizada Smart Entity Timer Card de 0.2.2 a 0.3.0.
+- Actualizada la URL del tag aprobado.
+- Actualizada la huella SHA-256.
+- Se mantiene Home Assistant 2026.7.0 como versión mínima.
+- Sin cambios en la lógica de Smart Home UI Manager.
+
 ## 1.1.0
 
 - Agregado Smart Entity Timer `0.3.0` como integración opcional, desactivada por defecto.
