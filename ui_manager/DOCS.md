@@ -1,17 +1,16 @@
 # Documentación de Smart Home UI Manager
 
-## Estado de la aplicación
+## Propósito
 
-La versión `1.1.0` mantiene la línea estable iniciada en `1.0.0` y agrega dos componentes opcionales, desactivados por defecto: **Smart Entity Timer 0.3.0** y **Smart Entity Timer Card 0.2.2**. La lógica estable de instalación, actualización, reparación, respaldo y restauración se conserva. El tipo de inventario continúa como lista seleccionable con dos valores válidos:
+Smart Home UI Manager es una herramienta manual de mantenimiento para Home Assistant OS. Instala, valida, actualiza, repara, diagnostica, inventaría y restaura componentes personalizados aprobados por el instalador.
 
-```text
-frontend
-integration
-```
+La aplicación está pensada para ejecutarse durante mantenimiento y detenerse al terminar. No está diseñada para permanecer ejecutándose de forma continua.
 
-La aplicación fue diseñada como herramienta privada de mantenimiento administrada por el instalador, no para operación diaria del cliente final.
+> **Fuente de verdad:** las versiones, URLs, SHA-256, rutas y requisitos mínimos aprobados de cada componente están en `ui_manager/components.json`. Esta documentación explica el procedimiento, pero si existe una diferencia con el catálogo, debe revisarse `components.json`.
 
-## Ajustes recomendados de la aplicación
+---
+
+# Ajustes recomendados
 
 Mantén normalmente:
 
@@ -19,9 +18,11 @@ Mantén normalmente:
 - **Watchdog:** desactivado.
 - **Actualización automática:** desactivada.
 
-Actualiza Smart Home UI Manager mientras esté detenida. Después guarda la configuración y presiona **Iniciar** una sola vez. La aplicación ejecuta la tarea seleccionada y se detiene al terminar.
+Actualiza Smart Home UI Manager mientras esté detenida. Después guarda la configuración y presiona **Iniciar** una sola vez.
 
-## Regla principal de rutas
+---
+
+# Regla principal de rutas
 
 Dentro del contenedor de Smart Home UI Manager, la carpeta de configuración de Home Assistant siempre se encuentra en:
 
@@ -29,9 +30,9 @@ Dentro del contenedor de Smart Home UI Manager, la carpeta de configuración de 
 /config
 ```
 
-Aunque File Editor, Studio Code Server u otra herramienta muestre la misma carpeta como `/homeassistant`, en las opciones de esta aplicación debes escribir `/config`.
+Aunque File Editor, Studio Code Server u otra herramienta muestre la misma carpeta como `/homeassistant`, dentro de Smart Home UI Manager debes utilizar `/config`.
 
-| Ruta vista en otras herramientas | Ruta que debes usar en Smart Home UI Manager |
+| Ruta vista en otras herramientas | Ruta en Smart Home UI Manager |
 |---|---|
 | `/homeassistant/www/...` | `/config/www/...` |
 | `/homeassistant/custom_components/...` | `/config/custom_components/...` |
@@ -43,34 +44,34 @@ Ejemplo correcto para Mushroom instalada mediante HACS:
 /config/www/community/lovelace-mushroom/mushroom.js
 ```
 
-Ejemplo incorrecto dentro de esta aplicación:
+Ejemplo incorrecto:
 
 ```text
 /homeassistant/www/community/lovelace-mushroom/mushroom.js
 ```
 
-## Prioridad de los modos de operación
+---
 
-Los modos especiales son exclusivos. Activa solo el modo que necesitas.
+# Prioridad de los modos de operación
 
-| Opción activa | Operación ejecutada |
+Los modos especiales son exclusivos.
+
+| Opción activa | Operación |
 |---|---|
-| `local_inventory_enabled: true` | Solo calcula la huella SHA-256 local |
+| `local_inventory_enabled: true` | Solo calcula SHA-256 local |
 | `restore_backup_enabled: true` | Solo restaura un respaldo |
-| `diagnostic_only_enabled: true` | Solo realiza el diagnóstico |
-| Todas las anteriores en `false` | Ejecuta mantenimiento normal |
+| `diagnostic_only_enabled: true` | Solo realiza diagnóstico |
+| Todas las anteriores en `false` | Mantenimiento normal |
 
-Después de usar un modo especial, vuelve a desactivarlo antes de la siguiente ejecución.
+Después de usar un modo especial, vuelve a desactivarlo.
 
-# Referencia de todas las opciones
+---
+
+# Referencia de opciones
 
 ## `diagnostic_only_enabled`
 
-### Función
-
 Ejecuta únicamente el diagnóstico previo. No instala, actualiza, repara ni restaura componentes.
-
-### Configuración
 
 ```yaml
 diagnostic_only_enabled: true
@@ -78,86 +79,63 @@ local_inventory_enabled: false
 restore_backup_enabled: false
 ```
 
-### Procedimiento
+Procedimiento:
 
 1. Activa **Solo diagnóstico**.
 2. Guarda la configuración.
 3. Inicia la aplicación una vez.
-4. Revisa el registro.
-5. Abre el reporte:
+4. Revisa:
 
 ```text
 /config/ui-manager/diagnostics/latest.txt
 ```
 
-6. Confirma:
-
-```text
-Fallos críticos: 0
-El mantenimiento puede continuar.
-```
-
-7. Vuelve a configurar:
+5. Confirma que no existan fallos críticos.
+6. Vuelve a configurar:
 
 ```yaml
 diagnostic_only_enabled: false
 ```
 
-### Cuándo usarlo
-
-- Después de instalar la aplicación.
-- Después de actualizar Smart Home UI Manager.
-- Antes de un mantenimiento importante.
-- Cuando cambió la versión de Home Assistant OS o Core.
-- Para comprobar permisos, espacio y acceso interno sin modificar componentes.
+Úsalo después de instalar o actualizar UI Manager, antes de un mantenimiento importante o cuando cambie Home Assistant OS/Core.
 
 ---
 
 ## `minimum_free_space_mb`
 
-### Función
-
-Define el espacio libre mínimo requerido en `/config` antes del mantenimiento.
-
-### Configuración recomendada
+Espacio libre mínimo requerido en `/config` antes del mantenimiento.
 
 ```yaml
 minimum_free_space_mb: 200
 ```
 
-### Rango permitido
+Rango permitido:
 
 ```text
 50 a 5000 MB
 ```
 
-Si no hay espacio suficiente, el diagnóstico genera un fallo y el mantenimiento se detiene antes de modificar componentes.
+Si no hay suficiente espacio, el mantenimiento se bloquea antes de modificar componentes.
 
 ---
 
 ## `local_inventory_enabled`
 
-### Función
-
-Activa el modo de inventario local SHA-256. Calcula la huella de un componente ya instalado sin descargar, reemplazar ni eliminar archivos.
-
-### Configuración base
+Activa el inventario local SHA-256 de un componente ya instalado.
 
 ```yaml
 local_inventory_enabled: true
 ```
 
-Mientras esté activado, el mantenimiento normal no se ejecuta.
+Mientras esté activo, no se ejecuta mantenimiento normal.
 
-### Resultado
-
-El reporte se guarda en:
+Reporte:
 
 ```text
 /config/ui-manager/checksum-candidates/latest.txt
 ```
 
-Al terminar, vuelve a configurar:
+Al terminar:
 
 ```yaml
 local_inventory_enabled: false
@@ -167,32 +145,20 @@ local_inventory_enabled: false
 
 ## `local_inventory_type`
 
-### Función
-
-Indica qué clase de componente se va a inventariar. En la interfaz aparece como una lista seleccionable.
-
-### Valores disponibles
+Lista seleccionable con dos valores:
 
 ```text
 frontend
 integration
 ```
 
-### Selecciona `frontend` cuando
-
-- El componente es una tarjeta de dashboard.
-- La ruta apunta a un archivo JavaScript individual.
-- Ejemplos: Mushroom, Mini Graph Card o Modern Circular Gauge.
+Usa `frontend` para tarjetas o archivos individuales, normalmente `.js`:
 
 ```yaml
 local_inventory_type: frontend
 ```
 
-### Selecciona `integration` cuando
-
-- El componente es una integración personalizada.
-- La ruta apunta a una carpeta completa.
-- La carpeta contiene un archivo `manifest.json` válido.
+Usa `integration` para carpetas completas de integraciones que contienen `manifest.json`:
 
 ```yaml
 local_inventory_type: integration
@@ -202,63 +168,55 @@ local_inventory_type: integration
 
 ## `local_inventory_name`
 
-### Función
-
-Nombre descriptivo que aparecerá en el reporte de inventario.
-
-Ejemplos:
+Nombre descriptivo para el reporte.
 
 ```yaml
 local_inventory_name: Mushroom
 ```
 
 ```yaml
-local_inventory_name: SonoffLAN
+local_inventory_name: Smart Entity Timer
 ```
 
-Este nombre es informativo y no determina la ruta de instalación.
+No determina la ruta ni el ID interno.
 
 ---
 
 ## `local_inventory_version`
 
-### Función
-
-Versión del componente que estás evaluando en laboratorio.
-
-Ejemplo:
+Versión que estás evaluando.
 
 ```yaml
 local_inventory_version: 5.2.2
 ```
 
-Para una integración, la versión indicada debe coincidir con la versión declarada en su `manifest.json`. Si no coincide, el reporte solicitará revisión.
+También puede escribirse con `v` si así identificas la publicación:
+
+```yaml
+local_inventory_version: v0.3.0
+```
+
+Para integraciones, confirma que corresponda a la versión detectada en `manifest.json`.
 
 ---
 
 ## `local_inventory_path`
 
-### Función
+Debe estar dentro de `/config`.
 
-Ruta real del archivo o carpeta que se va a inventariar. Debe estar dentro de `/config`.
-
-### Para una tarjeta
-
-Debe apuntar al archivo JavaScript exacto:
+Tarjeta:
 
 ```yaml
 local_inventory_path: /config/www/community/lovelace-mushroom/mushroom.js
 ```
 
-### Para una integración
-
-Debe apuntar a la carpeta que contiene `manifest.json`:
+Integración:
 
 ```yaml
-local_inventory_path: /config/custom_components/sonoff
+local_inventory_path: /config/custom_components/smart_entity_timer
 ```
 
-### Error frecuente
+Error frecuente:
 
 ```text
 No such file or directory: '/homeassistant'
@@ -268,9 +226,9 @@ Solución: sustituye `/homeassistant` por `/config`.
 
 ---
 
-# Procedimiento completo: inventario de una tarjeta
+# Inventario SHA-256 de una tarjeta
 
-Ejemplo para Mushroom instalada por HACS:
+Ejemplo con Mushroom instalada mediante HACS:
 
 ```yaml
 local_inventory_enabled: true
@@ -280,59 +238,528 @@ local_inventory_version: 5.2.2
 local_inventory_path: /config/www/community/lovelace-mushroom/mushroom.js
 ```
 
-1. Confirma mediante File Editor o Studio Code que el archivo `mushroom.js` existe.
-2. Convierte la ruta visible a una ruta que empiece con `/config`.
-3. Guarda la configuración.
-4. Inicia la aplicación una sola vez.
-5. Abre:
+1. Instala o actualiza la versión en un laboratorio mediante HACS.
+2. Confirma que el archivo exista.
+3. Usa la ruta equivalente comenzando en `/config`.
+4. Guarda la configuración.
+5. Inicia UI Manager una vez.
+6. Abre:
 
 ```text
 /config/ui-manager/checksum-candidates/latest.txt
 ```
 
-6. Copia la huella SHA-256.
-7. Confirma la misma huella en otra instalación de laboratorio antes de aprobarla para el catálogo.
-8. Desactiva `local_inventory_enabled`.
+7. Copia la SHA-256.
+8. Cuando sea posible, repite la comprobación en una segunda instalación.
+9. Desactiva `local_inventory_enabled`.
 
-La huella corresponde al archivo JavaScript instalado, no al ZIP o a la página de GitHub.
+La huella corresponde al archivo JavaScript instalado.
 
-# Procedimiento completo: inventario de una integración
+---
 
-Ejemplo para SonoffLAN:
+# Inventario SHA-256 de una integración
+
+Ejemplo con Smart Entity Timer:
 
 ```yaml
 local_inventory_enabled: true
 local_inventory_type: integration
-local_inventory_name: SonoffLAN
-local_inventory_version: 3.12.2
-local_inventory_path: /config/custom_components/sonoff
+local_inventory_name: Smart Entity Timer
+local_inventory_version: v0.3.0
+local_inventory_path: /config/custom_components/smart_entity_timer
 ```
 
-1. Confirma que la carpeta existe.
-2. Confirma que contiene `manifest.json`.
-3. Confirma que la versión indicada coincide con el manifiesto.
-4. Guarda e inicia la aplicación una sola vez.
-5. Abre:
+1. Instala o actualiza la versión en un laboratorio.
+2. Confirma que exista la carpeta.
+3. Confirma que incluya `manifest.json`.
+4. Comprueba la versión detectada.
+5. Inicia UI Manager una vez.
+6. Abre:
 
 ```text
 /config/ui-manager/checksum-candidates/latest.txt
 ```
 
-6. Copia la huella del árbol de archivos.
-7. Valídala en una segunda instalación.
-8. Desactiva `local_inventory_enabled`.
+7. Copia la huella del árbol de archivos.
+8. Cuando sea posible, repite la comprobación en otra instalación.
+9. Desactiva `local_inventory_enabled`.
 
-La huella de una integración se calcula sobre su árbol completo de archivos instalado. Se ignoran cachés de Python y archivos temporales definidos por la aplicación.
+> Para integraciones, la SHA-256 aprobada por UI Manager corresponde al **árbol de archivos instalado**, no al SHA-256 del ZIP descargado.
 
 ---
 
+# Cómo obtener la URL correcta de un componente
+
+No todos los proyectos publican sus archivos de la misma forma. Antes de editar `components.json`, identifica cómo publica el desarrollador el artefacto que realmente se instala.
+
+La regla principal es:
+
+> Usa una URL fija asociada a una versión o tag. No uses `main`, `master`, `latest` ni otra referencia mutable.
+
+Hay cuatro casos comunes.
+
+---
+
+## Caso A: archivo adjunto a un GitHub Release
+
+Es el caso de proyectos que publican directamente el archivo instalable dentro de **Assets**.
+
+### Ejemplo: Mushroom
+
+En la release `v5.2.2` se publica:
+
+```text
+mushroom.js
+```
+
+Patrón:
+
+```text
+https://github.com/ORGANIZACION/REPOSITORIO/releases/download/TAG/ARCHIVO
+```
+
+Ejemplo:
+
+```text
+https://github.com/piitaya/lovelace-mushroom/releases/download/v5.2.2/mushroom.js
+```
+
+Para una futura `v5.2.3`, primero confirma que la release siga incluyendo `mushroom.js`. Si conserva el mismo nombre, normalmente será:
+
+```text
+https://github.com/piitaya/lovelace-mushroom/releases/download/v5.2.3/mushroom.js
+```
+
+### Cómo obtenerla manualmente
+
+1. Abre el repositorio.
+2. Entra a **Releases**.
+3. Abre la versión exacta.
+4. Busca el archivo en **Assets**.
+5. Copia el enlace de descarga.
+6. Comprueba que la URL contenga la versión exacta.
+
+### Digest de GitHub
+
+GitHub puede mostrar un `digest` SHA-256 del asset. Si está disponible, compáralo con la huella obtenida mediante el inventario local.
+
+Para un archivo frontend idéntico, ambos valores deben coincidir.
+
+---
+
+## Caso B: archivo dentro de un tag
+
+Algunos proyectos no adjuntan el JavaScript como asset, pero el archivo compilado forma parte del tag.
+
+### Ejemplo: Smart Entity Timer Card
+
+El archivo está en:
+
+```text
+dist/smart-entity-timer-card.js
+```
+
+La URL que GitHub puede entregar al pulsar **Raw** es:
+
+```text
+https://raw.githubusercontent.com/ORGANIZACION/REPOSITORIO/refs/tags/TAG/RUTA
+```
+
+Ejemplo:
+
+```text
+https://raw.githubusercontent.com/abel-smart-timer/smart-entity-timer-card/refs/tags/v0.3.0/dist/smart-entity-timer-card.js
+```
+
+GitHub también puede resolver la forma corta:
+
+```text
+https://raw.githubusercontent.com/abel-smart-timer/smart-entity-timer-card/v0.3.0/dist/smart-entity-timer-card.js
+```
+
+Para el catálogo se recomienda utilizar la URL que GitHub entregue directamente mediante **Raw**.
+
+### Cómo obtenerla manualmente
+
+1. Abre el repositorio.
+2. Cambia de `main` al tag exacto.
+3. Navega hasta el archivo instalable.
+4. Abre el archivo.
+5. Pulsa **Raw**.
+6. Copia la URL.
+7. Confirma que contenga el tag correcto.
+8. Confirma que la ruta y el nombre del archivo no hayan cambiado.
+
+No asumas que todas las versiones conservarán la misma ruta.
+
+---
+
+## Caso C: ZIP automático de un tag
+
+Es útil para integraciones cuyo repositorio contiene:
+
+```text
+custom_components/<dominio>/
+```
+
+Patrón:
+
+```text
+https://github.com/ORGANIZACION/REPOSITORIO/archive/refs/tags/TAG.zip
+```
+
+Ejemplo:
+
+```text
+https://github.com/abel-smart-timer/smart-entity-timer/archive/refs/tags/v0.3.0.zip
+```
+
+En este caso:
+
+- `url` apunta al ZIP del tag.
+- `version` debe coincidir con `manifest.json`.
+- `integration_id` identifica el destino en `/config/custom_components`.
+- `source_folder` identifica la carpeta dentro del paquete.
+- `sha256` debe ser la huella del **árbol instalado**, no la huella del ZIP.
+
+---
+
+## Caso D: ZIP o archivo adjunto a una release
+
+Algunas integraciones publican un paquete preparado específicamente para instalación.
+
+Patrón:
+
+```text
+https://github.com/ORGANIZACION/REPOSITORIO/releases/download/TAG/PAQUETE.zip
+```
+
+Si existe un paquete oficial de instalación y su estructura es compatible con UI Manager, normalmente debe preferirse sobre el ZIP automático del código fuente.
+
+Antes de usarlo confirma:
+
+1. Que corresponde exactamente a la versión.
+2. Que contiene la integración correcta.
+3. Que `manifest.json` declara la versión esperada.
+4. Que UI Manager encuentra la carpeta de origen.
+5. Que el árbol extraído produce la SHA-256 aprobada.
+
+---
+
+# URLs que no debes usar
+
+Evita ramas mutables:
+
+```text
+.../main/...
+.../master/...
+```
+
+Evita referencias ambiguas:
+
+```text
+.../latest/...
+```
+
+El objetivo es mantener siempre esta relación:
+
+```text
+versión aprobada
++
+URL fija
++
+SHA-256 aprobada
+```
+
+---
+
+# Actualizar manualmente una tarjeta ya soportada
+
+Este procedimiento aplica cuando la tarjeta:
+
+- ya existe en `components.json`;
+- sigue siendo un solo archivo frontend;
+- conserva la misma ruta de instalación;
+- conserva el mismo nombre de archivo;
+- no introduce dependencias especiales nuevas.
+
+Ejemplo: Smart Entity Timer Card `0.2.2` → `0.3.0`.
+
+## 1. Probar en HACS
+
+Actualiza primero la tarjeta en un laboratorio y confirma que funciona.
+
+## 2. Obtener la SHA-256
+
+```yaml
+local_inventory_enabled: true
+local_inventory_type: frontend
+local_inventory_name: Smart Entity Timer Card
+local_inventory_version: v0.3.0
+local_inventory_path: /config/www/community/smart-entity-timer-card/smart-entity-timer-card.js
+```
+
+Ejecuta una vez y toma la huella desde:
+
+```text
+/config/ui-manager/checksum-candidates/latest.txt
+```
+
+Luego desactiva el inventario.
+
+## 3. Obtener la URL exacta
+
+Para Smart Entity Timer Card:
+
+1. Abre el tag `v0.3.0`.
+2. Abre:
+
+```text
+dist/smart-entity-timer-card.js
+```
+
+3. Pulsa **Raw**.
+4. Copia la URL.
+
+Ejemplo:
+
+```text
+https://raw.githubusercontent.com/abel-smart-timer/smart-entity-timer-card/refs/tags/v0.3.0/dist/smart-entity-timer-card.js
+```
+
+## 4. Modificar `components.json`
+
+Normalmente debes cambiar:
+
+```text
+version
+url
+sha256
+catalog_version
+```
+
+Ejemplo:
+
+```json
+{
+  "id": "smart_entity_timer_card",
+  "name": "Smart Entity Timer Card",
+  "option": "smart_entity_timer_card",
+  "type": "frontend",
+  "version": "0.3.0",
+  "url": "https://raw.githubusercontent.com/abel-smart-timer/smart-entity-timer-card/refs/tags/v0.3.0/dist/smart-entity-timer-card.js",
+  "sha256": "SHA256_APROBADA_DE_0.3.0",
+  "install_dir": "/config/www/ui-components/smart-entity-timer-card",
+  "filename": "smart-entity-timer-card.js",
+  "resource_url": "/local/ui-components/smart-entity-timer-card/smart-entity-timer-card.js",
+  "resource_type": "module",
+  "min_home_assistant": "2026.7.0"
+}
+```
+
+No cambies los demás campos salvo que la nueva versión realmente cambie esos requisitos.
+
+## 5. Incrementar `catalog_version`
+
+Ejemplo:
+
+```json
+"catalog_version": "2026.08.08-2"
+```
+
+Cada catálogo publicado debe tener un identificador diferente.
+
+## 6. Incrementar Smart Home UI Manager
+
+Si la versión actual ya fue publicada, incrementa el patch:
+
+```text
+1.1.0 → 1.1.1
+```
+
+en:
+
+```text
+ui_manager/config.yaml
+```
+
+## 7. Actualizar `CHANGELOG.md`
+
+Ejemplo:
+
+```markdown
+## 1.1.1
+
+- Actualizada Smart Entity Timer Card de 0.2.2 a 0.3.0.
+- Actualizada la URL fija del tag aprobado.
+- Actualizada la huella SHA-256 aprobada.
+- Sin cambios en la lógica de Smart Home UI Manager.
+```
+
+## 8. Compilar sin publicar
+
+```text
+publish: false
+allow_overwrite: false
+```
+
+Confirma:
+
+```text
+Validate and initialize
+Build amd64
+Build aarch64
+```
+
+## 9. Publicar
+
+```text
+publish: true
+allow_overwrite: false
+```
+
+Confirma:
+
+```text
+Validate and initialize
+Build amd64
+Build aarch64
+Publish multi-architecture manifest
+Verify public publication
+```
+
+## 10. Probar la actualización
+
+Actualiza UI Manager en un laboratorio y ejecuta mantenimiento normal.
+
+El reporte debería mostrar la tarjeta como `ACTUALIZADO` o `VERIFICADO`, según el estado previo.
+
+Después comprueba el dashboard y recarga el navegador.
+
+---
+
+# Actualizar manualmente Mushroom
+
+Mushroom utiliza normalmente un **asset de GitHub Release**, no una URL `raw`.
+
+## 1. Abrir la nueva release
+
+Abre la release exacta de Mushroom.
+
+## 2. Confirmar el asset
+
+Dentro de **Assets**, confirma que exista:
+
+```text
+mushroom.js
+```
+
+## 3. Copiar la URL
+
+Patrón:
+
+```text
+https://github.com/piitaya/lovelace-mushroom/releases/download/vVERSION/mushroom.js
+```
+
+Ejemplo:
+
+```text
+https://github.com/piitaya/lovelace-mushroom/releases/download/v5.2.2/mushroom.js
+```
+
+## 4. Obtener y verificar SHA-256
+
+Actualiza Mushroom mediante HACS y calcula:
+
+```yaml
+local_inventory_enabled: true
+local_inventory_type: frontend
+local_inventory_name: Mushroom
+local_inventory_version: 5.2.2
+local_inventory_path: /config/www/community/lovelace-mushroom/mushroom.js
+```
+
+Si GitHub muestra un digest SHA-256 del asset, compáralo con la huella local.
+
+## 5. Actualizar el catálogo
+
+Para una actualización rutinaria normalmente cambias:
+
+```text
+version
+url
+sha256
+catalog_version
+```
+
+No necesitas modificar:
+
+```text
+install_dir
+filename
+resource_url
+resource_type
+```
+
+mientras el proyecto conserve el mismo formato de distribución.
+
+---
+
+# Cuándo no basta con cambiar `version`, `url` y `sha256`
+
+Detén el procedimiento rutinario si ocurre cualquiera de estos cambios:
+
+- El archivo cambia de nombre.
+- El archivo cambia de carpeta.
+- La tarjeta deja de ser un archivo único.
+- El proyecto cambia de asset de release a ZIP o viceversa.
+- La integración cambia de dominio.
+- Cambia `custom_components/<dominio>`.
+- Cambia la estructura interna del ZIP.
+- Aparece una dependencia obligatoria nueva.
+- Cambia la versión mínima de Home Assistant.
+- La actualización requiere una migración especial.
+- El paquete ya no produce la misma estructura que HACS.
+- El artefacto descargado no produce la huella esperada.
+
+En esos casos revisa `component_manager.py`, `components.json`, la documentación y el procedimiento antes de publicar.
+
+---
+
+# Checklist antes de aprobar una actualización
+
+```text
+[ ] La versión funciona en laboratorio.
+[ ] Existe un tag o release fijo.
+[ ] La URL apunta exactamente a ese tag o release.
+[ ] La URL descarga el artefacto esperado.
+[ ] La SHA-256 local fue calculada.
+[ ] La SHA-256 fue repetida en otra instalación cuando sea posible.
+[ ] El nombre y ruta del archivo no cambiaron.
+[ ] La versión mínima de Home Assistant fue revisada.
+[ ] Las notas de la release fueron revisadas.
+```
+
+Después:
+
+```text
+[ ] components.json actualizado.
+[ ] catalog_version incrementado.
+[ ] config.yaml incrementado.
+[ ] CHANGELOG.md actualizado.
+[ ] Build amd64 correcto.
+[ ] Build aarch64 correcto.
+[ ] Publicación multi-arquitectura correcta.
+[ ] Verificación pública correcta.
+[ ] Actualización probada en laboratorio.
+```
+
+---
+
+# Restauración de respaldos
+
 ## `restore_backup_enabled`
-
-### Función
-
-Activa el modo exclusivo de restauración manual de una integración.
-
-### Configuración recomendada
 
 ```yaml
 restore_backup_enabled: true
@@ -340,19 +767,19 @@ restore_component: sonofflan
 restore_backup: latest_good
 ```
 
-### Procedimiento
+Procedimiento:
 
 1. Activa **Restaurar respaldo**.
 2. Indica el componente.
 3. Usa normalmente `latest_good`.
-4. Guarda e inicia la aplicación una vez.
+4. Inicia la aplicación una vez.
 5. Revisa:
 
 ```text
 /config/ui-manager/restore-reports/latest.txt
 ```
 
-6. Reinicia Home Assistant Core cuando el reporte lo solicite.
+6. Reinicia Home Assistant Core cuando corresponda.
 7. Comprueba la integración.
 8. Desactiva:
 
@@ -360,56 +787,43 @@ restore_backup: latest_good
 restore_backup_enabled: false
 ```
 
-La restauración crea primero un respaldo de seguridad del estado instalado actualmente.
-
 ---
 
 ## `restore_component`
 
-### Función
-
-ID del componente del catálogo que se desea restaurar.
-
-Valores actuales:
+IDs actuales de integraciones administradas:
 
 ```text
 sonofflan
 spook
+smart_entity_timer
 ```
 
 Ejemplo:
 
 ```yaml
-restore_component: spook
+restore_component: smart_entity_timer
 ```
 
-Debe utilizarse el ID interno del catálogo, no necesariamente el nombre visible de la integración.
+Debe utilizarse el ID interno del catálogo.
 
 ---
 
 ## `restore_backup`
 
-### Función
-
-Selecciona el respaldo que se restaurará.
-
-### Valor recomendado
+Valor recomendado:
 
 ```yaml
 restore_backup: latest_good
 ```
 
-### Opciones
-
 | Valor | Comportamiento |
 |---|---|
-| `latest_good` | Restaura el respaldo bueno más reciente y omite `SUSPECT`, `UNKNOWN` e `INVALID` |
-| `latest` | Restaura el respaldo más reciente sin filtrar su clasificación |
-| `AAAAmmdd-HHMMSS` | Restaura una carpeta de respaldo específica |
+| `latest_good` | Último respaldo `GOOD` |
+| `latest` | Último respaldo sin filtrar clasificación |
+| `AAAAmmdd-HHMMSS` | Respaldo específico |
 
-Usa `latest_good` salvo que conozcas exactamente el respaldo específico que necesitas.
-
-El inventario de respaldos está en:
+Inventario:
 
 ```text
 /config/ui-manager/backups/inventory/latest.txt
@@ -419,29 +833,19 @@ El inventario de respaldos está en:
 
 ## `max_integration_backups`
 
-### Función
-
-Cantidad máxima de respaldos que se conservan por integración.
-
-### Valor recomendado
-
 ```yaml
 max_integration_backups: 5
 ```
 
-### Rango permitido
+Rango:
 
 ```text
 1 a 20
 ```
 
-Los respaldos se crean antes de:
+Los respaldos se crean antes de actualizar, reparar o restaurar una integración existente.
 
-- Actualizar una integración existente.
-- Reparar una integración con huella incorrecta.
-- Restaurar una integración.
-
-La primera instalación no crea respaldo porque todavía no existe una versión anterior.
+La primera instalación no crea respaldo porque no existe una versión anterior.
 
 ---
 
@@ -453,7 +857,7 @@ La primera instalación no crea respaldo porque todavía no existe una versión 
 mini_graph_card: true
 ```
 
-Administra Mini Graph Card. La instala, verifica, actualiza o repara y registra su recurso de dashboard.
+Instala, verifica, actualiza o repara Mini Graph Card y registra su recurso.
 
 ## `mushroom`
 
@@ -461,7 +865,7 @@ Administra Mini Graph Card. La instala, verifica, actualiza o repara y registra 
 mushroom: true
 ```
 
-Administra Mushroom. La instala, verifica, actualiza o repara y registra su recurso de dashboard.
+Instala, verifica, actualiza o repara Mushroom y registra su recurso.
 
 ## `modern_circular_gauge`
 
@@ -469,7 +873,7 @@ Administra Mushroom. La instala, verifica, actualiza o repara y registra su recu
 modern_circular_gauge: true
 ```
 
-Administra Modern Circular Gauge. La instala, verifica, actualiza o repara y registra su recurso de dashboard.
+Instala, verifica, actualiza o repara Modern Circular Gauge y registra su recurso.
 
 ## `sonofflan`
 
@@ -477,7 +881,7 @@ Administra Modern Circular Gauge. La instala, verifica, actualiza o repara y reg
 sonofflan: true
 ```
 
-Administra la integración SonoffLAN. Antes de actualizar o reparar crea un respaldo. Puede requerir reiniciar Home Assistant Core.
+Administra SonoffLAN. Puede requerir reiniciar Home Assistant Core.
 
 ## `spook`
 
@@ -485,7 +889,7 @@ Administra la integración SonoffLAN. Antes de actualizar o reparar crea un resp
 spook: true
 ```
 
-Administra la integración Spook. Antes de actualizar o reparar crea un respaldo. Puede requerir reiniciar Home Assistant Core.
+Administra Spook. Puede requerir reiniciar Home Assistant Core.
 
 ## `smart_entity_timer`
 
@@ -493,19 +897,17 @@ Administra la integración Spook. Antes de actualizar o reparar crea un respaldo
 smart_entity_timer: false
 ```
 
-Administra **Smart Entity Timer 0.3.0**. Es una integración personalizada y permanece desactivada por defecto porque todavía está en desarrollo activo. Requiere Home Assistant `2026.7.0` o posterior.
+Administra Smart Entity Timer. Permanece desactivado por defecto para una adopción controlada.
 
-Cuando se habilita, Smart Home UI Manager puede instalarla, verificar su versión y SHA-256, actualizarla, repararla y crear respaldos de sus archivos antes de una actualización o reparación.
-
-La instalación se realiza en:
+Instalación:
 
 ```text
 /config/custom_components/smart_entity_timer
 ```
 
-Después de instalarla o actualizarla, reinicia Home Assistant Core.
+Después de instalarlo o actualizarlo, reinicia Home Assistant Core.
 
-**Importante para migraciones:** el respaldo de Smart Home UI Manager conserva los archivos de la integración, pero no sustituye un respaldo completo de Home Assistant. La migración oficial de Smart Entity Timer `0.2.x` a `0.3.0` requiere que no haya temporizadores activos y recomienda crear un respaldo completo de Home Assistant antes de actualizar.
+El respaldo de UI Manager protege los archivos de la integración, pero no sustituye un respaldo completo de Home Assistant cuando una release indique una migración estructural.
 
 ## `smart_entity_timer_card`
 
@@ -513,75 +915,71 @@ Después de instalarla o actualizarla, reinicia Home Assistant Core.
 smart_entity_timer_card: false
 ```
 
-Administra **Smart Entity Timer Card 0.2.2**. Permanece desactivada por defecto y requiere Smart Entity Timer. Requiere Home Assistant `2026.7.0` o posterior.
+Administra Smart Entity Timer Card. Permanece desactivada por defecto.
 
-La tarjeta se instala en:
+Instalación:
 
 ```text
 /config/www/ui-components/smart-entity-timer-card/smart-entity-timer-card.js
 ```
 
-y registra automáticamente el recurso:
+El recurso registrado usa la versión actualmente definida en `components.json`:
 
 ```text
-/local/ui-components/smart-entity-timer-card/smart-entity-timer-card.js?v=0.2.2
+/local/ui-components/smart-entity-timer-card/smart-entity-timer-card.js?v=<VERSION>
 ```
 
-Para usar el conjunto completo, habilita ambas opciones:
+Para utilizar el conjunto completo:
 
 ```yaml
 smart_entity_timer: true
 smart_entity_timer_card: true
 ```
 
-La integración aparece primero en el catálogo y se procesa antes que la tarjeta. Si habilitas solo la tarjeta, el archivo y el recurso pueden instalarse, pero la tarjeta no tendrá el backend Smart Entity Timer necesario para funcionar.
+### Regla general
 
-### Regla para todos los componentes
-
-- `true`: Smart Home UI Manager administra el componente.
-- `false`: el componente se omite completamente.
-- Cambiarlo a `false` no desinstala ni elimina el componente.
-- La aplicación no elimina configuraciones, cuentas ni dispositivos de Home Assistant.
+- `true`: UI Manager administra el componente.
+- `false`: UI Manager lo omite.
+- Cambiar a `false` no desinstala el componente.
+- UI Manager no elimina configuraciones, cuentas ni dispositivos.
 
 ---
 
-# Adopción desde HACS de Smart Entity Timer
+# Adopción desde HACS
 
-En el laboratorio puedes continuar usando HACS para validar versiones nuevas y obtener sus huellas. En una instalación administrada por Smart Home UI Manager evita que HACS y UI Manager actualicen simultáneamente el mismo componente.
+HACS puede seguir utilizándose en laboratorios para probar versiones nuevas y obtener sus huellas.
 
-## Integración
+Evita que HACS y UI Manager administren simultáneamente el mismo componente en un equipo de cliente.
 
-Si Smart Entity Timer `0.3.0` ya está instalado mediante HACS y su árbol de archivos coincide con la huella aprobada, UI Manager lo reconocerá como `VERIFICADO`. A partir de ese momento, evita actualizar esa misma integración desde HACS en ese equipo.
+## Tarjetas
 
-## Tarjeta
-
-HACS suele instalar la tarjeta en:
+HACS normalmente utiliza:
 
 ```text
-/config/www/community/smart-entity-timer-card/smart-entity-timer-card.js
+/config/www/community/
 ```
 
-UI Manager utiliza su propia ubicación:
+UI Manager utiliza:
 
 ```text
-/config/www/ui-components/smart-entity-timer-card/smart-entity-timer-card.js
+/config/www/ui-components/
 ```
 
-No mantengas cargados simultáneamente dos recursos de la misma tarjeta. En una instalación de cliente deja como recurso activo únicamente el administrado por UI Manager.
+No mantengas dos recursos Lovelace activos para la misma tarjeta.
 
-## Huellas aprobadas para 1.1.0
+## Integraciones
+
+Ambos pueden apuntar físicamente a:
 
 ```text
-Smart Entity Timer 0.3.0
-e43b10283883132485391d0a9a75eb835733809471d71a9605ef700662ea3504
-
-Smart Entity Timer Card 0.2.2
-aba1d46bce7cc8dbe15faab5936000af2b99b7b3b7df72ecaf5918396256a168
+/config/custom_components/<dominio>
 ```
+
+Una vez adoptada por UI Manager, evita actualizar esa integración mediante HACS en ese equipo.
+
+---
 
 # Mantenimiento normal
-
-Para ejecutar el mantenimiento normal, utiliza:
 
 ```yaml
 diagnostic_only_enabled: false
@@ -593,18 +991,18 @@ Deja en `true` únicamente los componentes que deseas administrar.
 
 La aplicación:
 
-1. Ejecuta el diagnóstico previo.
+1. Ejecuta diagnóstico previo.
 2. Valida `components.json`.
-3. Comprueba la versión de Home Assistant Core.
-4. Omite componentes incompatibles antes de descargarlos.
+3. Comprueba Home Assistant Core.
+4. Omite componentes incompatibles.
 5. Instala componentes ausentes.
 6. Actualiza versiones anteriores.
-7. Repara componentes cuya huella no coincide.
-8. Registra los recursos de dashboard.
-9. Genera respaldos de integraciones cuando corresponde.
-10. Genera el reporte de mantenimiento.
+7. Repara componentes con huella incorrecta.
+8. Registra recursos de dashboard.
+9. Genera respaldos cuando corresponde.
+10. Genera el reporte.
 11. Actualiza el inventario de respaldos.
-12. Se detiene al finalizar.
+12. Se detiene.
 
 Reporte:
 
@@ -612,28 +1010,30 @@ Reporte:
 /config/ui-manager/reports/latest.txt
 ```
 
-Si se instala, actualiza, repara o restaura una integración, revisa si el reporte solicita reiniciar Home Assistant Core.
+---
 
 # Diagnóstico previo automático
 
-Antes del mantenimiento normal se comprueba:
+Comprueba:
 
-- Trazabilidad de la imagen ejecutada.
+- Trazabilidad de imagen.
 - Validez del catálogo.
-- Disponibilidad de Python y `curl`.
-- Módulos Python requeridos.
+- Python y `curl`.
+- Módulos Python.
 - Montaje y escritura de `/config`.
-- Acceso de escritura a tarjetas, integraciones y reportes.
+- Carpetas de frontend e integraciones.
 - Espacio libre.
-- Token interno de Supervisor.
-- Consulta de Home Assistant Core.
-- Resolución DNS de GitHub.
+- Token de Supervisor.
+- Home Assistant Core.
+- DNS de GitHub.
 
 Resultados:
 
 - `PASS`: correcto.
-- `WARN`: observación que no bloquea.
-- `FAIL`: fallo crítico; no se modifican componentes.
+- `WARN`: observación no bloqueante.
+- `FAIL`: fallo crítico.
+
+---
 
 # Ubicación rápida de reportes
 
@@ -645,40 +1045,34 @@ Resultados:
 | Restauración | `/config/ui-manager/restore-reports/latest.txt` |
 | Inventario de respaldos | `/config/ui-manager/backups/inventory/latest.txt` |
 
-Se conservan los últimos 20 reportes históricos de cada tipo. `latest.txt` no cuenta dentro del límite.
+---
 
 # Solución rápida de problemas
 
-## La ruta `/homeassistant` no existe
+## `/homeassistant` no existe
 
-Mensaje:
-
-```text
-No such file or directory: '/homeassistant'
-```
-
-Solución: usa la ruta equivalente dentro de `/config`.
+Usa la ruta equivalente bajo `/config`.
 
 ## La tarjeta no se encuentra
 
 1. Abre `/config/www/community`.
-2. Confirma el nombre real de la carpeta creada por HACS.
-3. Busca el archivo JavaScript exacto.
-4. Copia la ruta completa comenzando con `/config`.
+2. Confirma la carpeta creada por HACS.
+3. Busca el JavaScript exacto.
+4. Usa la ruta completa iniciando con `/config`.
 
 ## La integración no contiene `manifest.json`
 
-La ruta debe apuntar a la carpeta concreta de la integración, no a `/config/custom_components` completo.
+La ruta debe apuntar a la carpeta concreta de la integración.
 
-Ejemplo correcto:
+Ejemplo:
 
 ```text
-/config/custom_components/sonoff
+/config/custom_components/smart_entity_timer
 ```
 
 ## La versión indicada no coincide
 
-Abre `manifest.json` y utiliza exactamente la versión declarada por la integración instalada.
+Abre `manifest.json` y comprueba la versión real instalada.
 
 ## No existe `latest_good`
 
@@ -688,46 +1082,101 @@ Revisa:
 /config/ui-manager/backups/inventory/latest.txt
 ```
 
-Puede que todavía no exista ningún respaldo clasificado como `GOOD`. Selecciona un respaldo específico únicamente después de revisar su estado y versión.
-
 ## Componente incompatible
 
-El componente se omite antes de descargarse. Actualiza Home Assistant Core o mantén una versión aprobada compatible en el catálogo.
+El componente se omite antes de descargarse. Actualiza Home Assistant Core o conserva una versión compatible en el catálogo.
 
 ## SHA-256 diferente
 
-No apruebes la huella hasta confirmar:
+No apruebes la actualización hasta comprobar:
 
-- Que la versión sea la correcta.
-- Que el archivo provenga de la publicación oficial.
-- Que no haya sido modificado localmente.
-- Que la misma huella aparezca en una segunda instalación de prueba.
+- versión correcta;
+- tag o release correcto;
+- URL fija correcta;
+- artefacto oficial;
+- archivo no modificado localmente;
+- segunda comprobación cuando sea posible.
 
-## Recurso de dashboard ya registrado
+## La URL funciona pero la SHA no coincide
 
-No es un error. La aplicación comprobó que el recurso correcto ya existe.
+Comprueba si descargaste:
+
+- el archivo del tag correcto;
+- un asset de release diferente;
+- código fuente en lugar del artefacto compilado;
+- un ZIP cuyo SHA no debe compararse directamente con la huella de árbol de una integración.
+
+## Recurso ya registrado
+
+No es necesariamente un error. UI Manager puede estar confirmando que el recurso correcto ya existe.
 
 ## Cuándo reiniciar Home Assistant Core
 
-Normalmente después de instalar, actualizar, reparar o restaurar SonoffLAN, Spook o Smart Entity Timer. Las tarjetas de frontend suelen requerir únicamente recargar el navegador.
+Normalmente después de instalar, actualizar, reparar o restaurar una integración. Las tarjetas frontend suelen requerir recargar el navegador.
 
-# Publicar una versión futura
+---
 
-1. Prueba el componente nuevo o actualizado mediante HACS en laboratorio.
-2. Obtén y valida su SHA-256.
-3. Modifica el catálogo y los archivos de configuración necesarios.
-4. Incrementa `version` en `ui_manager/config.yaml`.
-5. Agrega la versión a `CHANGELOG.md`.
-6. Ejecuta el workflow con `publish=false` y `allow_overwrite=false`.
-7. Confirma la compilación `amd64` y `aarch64`.
-8. Ejecuta con `publish=true` y `allow_overwrite=false`.
-9. Confirma el manifiesto y la verificación pública.
-10. Actualiza primero una instalación de laboratorio.
-11. Ejecuta diagnóstico y mantenimiento normal.
-12. Distribuye la actualización gradualmente.
+# Publicar una versión futura de Smart Home UI Manager
 
-No sobrescribas una versión publicada. Una corrección posterior a `1.1.0` debe publicarse como `1.1.1`; una nueva función compatible puede publicarse como `1.2.0`.
+1. Prueba el componente mediante HACS en laboratorio.
+2. Lee las notas de la nueva release.
+3. Identifica el artefacto oficial.
+4. Obtén una URL fija del tag o release.
+5. Obtén y valida la SHA-256.
+6. Modifica `components.json`.
+7. Incrementa `catalog_version`.
+8. Incrementa `version` en `ui_manager/config.yaml`.
+9. Actualiza `CHANGELOG.md`.
+10. Ejecuta:
+
+```text
+publish=false
+allow_overwrite=false
+```
+
+11. Confirma `amd64` y `aarch64`.
+12. Ejecuta:
+
+```text
+publish=true
+allow_overwrite=false
+```
+
+13. Confirma los cinco trabajos.
+14. Actualiza primero un laboratorio.
+15. Ejecuta diagnóstico y mantenimiento.
+16. Comprueba el componente actualizado.
+17. Crea el GitHub Release de UI Manager.
+18. Distribuye gradualmente.
+
+Nunca sobrescribas una versión ya distribuida.
+
+---
+
+# Regla de versionado
+
+Actualización rutinaria de un componente ya soportado:
+
+```text
+1.1.0 → 1.1.1
+```
+
+Nueva función compatible de UI Manager:
+
+```text
+1.1.x → 1.2.0
+```
+
+Cambio incompatible:
+
+```text
+1.x → 2.0.0
+```
+
+---
 
 # Componentes de terceros
 
-Las tarjetas e integraciones administradas pertenecen a sus respectivos autores y conservan sus propias licencias. Smart Home UI Manager descarga las publicaciones oficiales configuradas en el catálogo y verifica su contenido mediante SHA-256.
+Las tarjetas e integraciones administradas pertenecen a sus respectivos autores y conservan sus propias licencias.
+
+Smart Home UI Manager debe descargar publicaciones fijas configuradas en `components.json` y verificar el contenido mediante SHA-256 antes de instalarlo.
